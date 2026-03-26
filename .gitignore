@@ -31,10 +31,5 @@ npm-debug.log
 # build files§
 build/
 dist/
-*.egg-info/
-
-
-
-
-    
+*.egg-info/   
 backend/venv/
