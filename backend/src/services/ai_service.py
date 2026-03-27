@@ -46,3 +46,28 @@ def generate_lecture(topic: str, difficulty: str = "intermediate") -> dict:
     except Exception as e:
         raise Exception(f"Error generating lecture content: {str(e)}")
     
+def answer_question(lecture_content: str, question: str) -> str:
+    prompt = f"""
+    You are an expert university lecturer. A student has asked a question about your lecture. Answer based on the lecture content provided.
+    
+    Lecture Content: {lecture_content}
+    Student's Question: {question}
+    
+    Provide a clear, helpful answer based on the lecture.
+    If the question is not related to the lecture, politely
+    let the student know and try to help anyway.
+    """
+    
+    try:
+        response = client.chat.completions.create(
+            model="gpt-5-nano",
+            messages=[
+                {"role": "system", "content": "You are an expert university lecturer."},
+                {"role": "user", "content": prompt}
+            ],
+        )
+        answer = response.choices[0].message.content
+        return answer
+    except Exception as e:
+        raise Exception(f"Error answering question: {str(e)}")
+    
