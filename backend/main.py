@@ -2,9 +2,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import fastapi.middleware.cors
 from src.config.database import engine, Base
-from src.models import user, lectures  # Ensure models are imported to create tables
+from src.models import user, lectures, question  # Ensure models are imported to create tables
 from src.routes.auth_routes import router as auth_router
 from src.routes.lecture_routes import router as lecture_router
+from src.routes.qa_routes import router as qa_router
 
 
 
@@ -24,6 +25,7 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(lecture_router)
+app.include_router(qa_router)
 
 
 @app.on_event("startup")
