@@ -1,27 +1,30 @@
-from sqlchemy.orm import Session
+from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from src.models.lectures import Lecture
 from src.services.ai_service import answer_question
-from src.models.questions import Question
+from src.models.question import Question
 
-def ask_question(db: Session, lecture_id: int, question_text: str):
-    
+
+def ask_question(db: Session, lecture_id: int, question_text: str, user_id: int):
+
     lecture = db.query(Lecture).filter(Lecture.id == lecture_id).first()
-    
+
     if not lecture:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lecture not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Lecture not found"
+        )
 
     ai_answer = answer_question(
-        lecture_content=lecture.content, 
+        lecture_content=lecture.content,
         question=question_text
-        )
+    )
 
     new_question = Question(
         lecture_id=lecture_id,
         question=question_text,
         answer=ai_answer,
         user_id=user_id
-        
     )
 
     db.add(new_question)
@@ -38,7 +41,8 @@ def ask_question(db: Session, lecture_id: int, question_text: str):
             "created_at": str(new_question.created_at)
         }
     }
-    
+
+
 def get_lecture_questions(lecture_id: int, db: Session):
 
     questions = db.query(Question).filter(
@@ -57,4 +61,4 @@ def get_lecture_questions(lecture_id: int, db: Session):
             }
             for q in questions
         ]
-    }    
+    }
