@@ -9,16 +9,19 @@ router = APIRouter(prefix="/lectures", tags=["lectures"])
 class LectureRequest(BaseModel):
     topic: str
     difficulty: str = "intermediate"
+    subject: str
     
 class UserLectureRequest(BaseModel):
      topic: str
      difficulty: str = "intermediate"
      user_id: int
+     subject: str
      
 @router.post("/generate")
 def generate_user_lecture(lecture: UserLectureRequest, db: Session = Depends(get_db)):
     return create_lecture(
         topic=lecture.topic,
+        subject=lecture.subject,
         difficulty=lecture.difficulty,
         user_id=lecture.user_id,
         db=db
@@ -28,6 +31,7 @@ def generate_user_lecture(lecture: UserLectureRequest, db: Session = Depends(get
 def generate_guest_lecture(lecture: LectureRequest, db: Session = Depends(get_db)):
     return create_guest_lecture(
         topic=lecture.topic,
+        subject=lecture.subject,
         difficulty=lecture.difficulty,
         db=db
     )

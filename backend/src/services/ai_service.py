@@ -5,10 +5,11 @@ from dotenv import load_dotenv
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-def generate_lecture(topic: str, difficulty: str = "intermediate") -> dict:
+def generate_lecture(topic: str, subject: str, difficulty: str = "intermediate") -> dict:
     prompt = f"""
-    You are expert university lecturer.Generate a detailed educational lecture.
+    You are expert university lecturer in {subject}.Generate a detailed educational lecture.
     Topic: {topic}
+    Subject: {subject}
     Difficulty Level: {difficulty}
     
     Structure of the lecture as follows:
@@ -18,6 +19,7 @@ def generate_lecture(topic: str, difficulty: str = "intermediate") -> dict:
     4. Conclusion: Summarize the main points and provide any final thoughts.
     
     Make it engaging and informative, suitable for students at the {difficulty} level. Use clear language and avoid jargon. Include any relevant historical context, applications, or future implications of the topic.
+    Make sure the lecture is specifically about {topic} in the context of {subject}
     """
     
     try:
@@ -41,7 +43,8 @@ def generate_lecture(topic: str, difficulty: str = "intermediate") -> dict:
             "content": lecture_content,
             "summary": lecture_summary,
             "difficulty": difficulty,
-            "topic": topic
+            "topic": topic,
+            "subject": subject
         }
     except Exception as e:
         raise Exception(f"Error generating lecture content: {str(e)}")
