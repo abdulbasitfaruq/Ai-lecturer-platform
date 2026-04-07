@@ -10,6 +10,10 @@ class RegisterRequest(BaseModel):
     username: str
     email: EmailStr
     password: str
+ 
+class LoginRequest(BaseModel):
+    username: str
+    password: str
     
 @router.post("/register")
 def register(request: RegisterRequest, db: Session = Depends(get_db)):
@@ -17,7 +21,7 @@ def register(request: RegisterRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/login")
-def login(request: RegisterRequest, db: Session = Depends(get_db)):
+def login(request: LoginRequest, db: Session = Depends(get_db)):
     return login_user(username=request.username, password=request.password, db=db)
 
 

@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-    baseURL: 'http://localhost:5000'
+    baseURL: 'http://localhost:8000'
 })
 
 export const registerUser = (username, email, password) => {
@@ -14,14 +14,13 @@ export const registerUser = (username, email, password) => {
 export const loginUser = (username, password) => {
     return API.post('/auth/login', {
         username,
-        email: username + '@placeholder.com', 
         password
     });
 }
 
 
 export const generateLecture = (topic, subject, difficulty, userID) => {
-    return API.post('/Lecture/generate', {
+    return API.post('/lectures/generate', {
         topic,
         subject,
         difficulty,
@@ -31,7 +30,7 @@ export const generateLecture = (topic, subject, difficulty, userID) => {
 
 
 export const generateGuestLecture = (topic, subject, difficulty) => {
-    return API.post('/Lecture/generateGuest', {
+    return API.post('/lectures/generateGuest', {
         topic,
         subject,
         difficulty
@@ -39,7 +38,7 @@ export const generateGuestLecture = (topic, subject, difficulty) => {
 }
 
 export const getUserLectures = (userID) => {
-    return API.get(`/Lecture/user/${userID}`);
+    return API.get(`/lectures/user/${userID}`);
 }
 
 export const askQuestion = (lectureId, userId, question) => {

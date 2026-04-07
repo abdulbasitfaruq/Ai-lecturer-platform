@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import fastapi.middleware.cors
 from src.config.database import engine, Base
 from src.models import user, lectures, question  # Ensure models are imported to create tables
 from src.routes.auth_routes import router as auth_router
@@ -16,8 +15,8 @@ app = FastAPI(
 )
 
 app.add_middleware(
-    fastapi.middleware.cors.CORSMiddleware,
-    allow_origins=["*"],
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://localhost:5174"],  # Update with your frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

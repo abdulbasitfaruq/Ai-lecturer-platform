@@ -21,7 +21,7 @@ function RegisterPage() {
           await registerUser(username, email, password);
           navigate('/login');
         } catch (err) {
-        setError(err.response?.data?.message || 'Registration failed. Username or email Already exists');
+        setError(err.response?.data?.detail || 'Registration failed');
           } finally {
             setLoading(false);
           }

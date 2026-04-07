@@ -16,11 +16,11 @@ function LoginPage() {
 
         try {
             const response = await loginUser(username, password);
-            localStorage.setItem('user', JSON.stringify(response.user.data));
-            localStorage.setItem('token', response.data.access_Token);
+            localStorage.setItem('user', JSON.stringify(response.data.user));
+            localStorage.setItem('token', response.data.access_token);
             navigate('/dashboard');
         } catch (err) {
-            setError(err.response?.data?.message || 'Login failed');
+            setError(err.response?.data?.detail || 'Login failed');
         } finally {
             setLoading(false);
         }
