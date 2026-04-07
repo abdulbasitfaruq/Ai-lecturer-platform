@@ -16,7 +16,7 @@ function HomePage() {
                 </h1>
                 <p className="text-gray-500 mt-4 max-w-lg mx-auto">
                     Get university-quality lectures instantly. Ask questions, listen to audio, 
-                    and learn at your own pace — all powered by artificial intelligence.
+                    and learn at your own pace all powered by artificial intelligence.
                 </p>
                 <div className="mt-6 flex justify-center gap-3">
                     <Link to="/register" className="bg-emerald-700 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-emerald-800">
@@ -114,10 +114,6 @@ function HomePage() {
                     </div>
                 </div>
             </div>
-
-
-
-        
         </div>
     );
 }
