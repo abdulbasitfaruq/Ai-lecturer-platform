@@ -5,6 +5,7 @@ import {Routes, Route, BrowserRouter} from 'react-router-dom'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import DashboardPage from './pages/DashbordPage'
+import GeneratePage from './pages/GeneratePage'
 
 function App() {
     return (
@@ -15,6 +16,7 @@ function App() {
                         <Route path="/login" element={<LoginPage />} />
                         <Route path="/register" element={<RegisterPage />} />
                         <Route path="/dashboard" element={<DashboardPage />} />
+                        <Route path="/generate" element={<GeneratePage />} />
                     </Routes>
                 <Footer />
         </BrowserRouter>
