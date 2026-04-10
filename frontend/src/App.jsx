@@ -6,6 +6,7 @@ import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import DashboardPage from './pages/DashbordPage'
 import GeneratePage from './pages/GeneratePage'
+import LecturePage from './pages/LecturePage'
 
 function App() {
     return (
@@ -17,6 +18,7 @@ function App() {
                         <Route path="/register" element={<RegisterPage />} />
                         <Route path="/dashboard" element={<DashboardPage />} />
                         <Route path="/generate" element={<GeneratePage />} />
+                        <Route path="/lecture/:id" element={<LecturePage />} />
                     </Routes>
                 <Footer />
         </BrowserRouter>
