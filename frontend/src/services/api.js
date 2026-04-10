@@ -24,13 +24,13 @@ export const generateLecture = (topic, subject, difficulty, userID) => {
         topic,
         subject,
         difficulty,
-        user_ID: userID
+        user_id: userID
     });
 }
 
 
 export const generateGuestLecture = (topic, subject, difficulty) => {
-    return API.post('/lectures/generateGuest', {
+    return API.post('/lectures/guest/generate', {
         topic,
         subject,
         difficulty
@@ -41,16 +41,16 @@ export const getUserLectures = (userID) => {
     return API.get(`/lectures/user/${userID}`);
 }
 
-export const askQuestion = (lectureId, userId, question) => {
+export const askQuestion = (lectureId, userId, question_text) => {
     return API.post('/qa/ask', {
         lecture_id: lectureId,
         user_id: userId,
-        question: question
+        question_text : question_text
     });
 }
 
 export const getLectureQuestion = (lectureId) => {
-    return API.get(`/qa/lecture/${lectureId}/questions`);
+    return API.get(`/qa/lectures/${lectureId}/questions`);
 }
 
 

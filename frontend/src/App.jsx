@@ -4,9 +4,10 @@ import HomePage from './pages/HomePage'
 import {Routes, Route, BrowserRouter} from 'react-router-dom'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
-import DashboardPage from './pages/DashbordPage'
+import DashboardPage from './pages/DashboardPage'
 import GeneratePage from './pages/GeneratePage'
 import LecturePage from './pages/LecturePage'
+import GuestPage from './pages/GuestPage'
 
 function App() {
     return (
@@ -19,6 +20,7 @@ function App() {
                         <Route path="/dashboard" element={<DashboardPage />} />
                         <Route path="/generate" element={<GeneratePage />} />
                         <Route path="/lecture/:id" element={<LecturePage />} />
+                        <Route path="/guest" element={<GuestPage />} />
                     </Routes>
                 <Footer />
         </BrowserRouter>

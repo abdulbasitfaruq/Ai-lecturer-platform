@@ -21,7 +21,14 @@ function GeneratePage() {
             const response = await generateLecture(topic, subject, difficulty, user.id)
             navigate(`/lecture/${response.data.lecture.id}`)
         } catch (err) {
-            setError(err.response?.data?.detail || 'Failed to generate lecture')
+            const detail = err.response?.data?.detail
+if (typeof detail === 'string') {
+    setError(detail)
+} else if (Array.isArray(detail)) {
+    setError(detail.map(d => d.msg).join(', '))
+} else {
+    setError('Failed to generate lecture')
+}
         } finally {
             setLoading(false)
         }

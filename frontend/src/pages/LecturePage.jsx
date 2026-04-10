@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { getUserLectures, askQuestion, getLectureQuestions } from '../services/api'
+import { getUserLectures, askQuestion, getLectureQuestion } from '../services/api'
 
 function LecturePage() {
     const { id } = useParams()
@@ -27,7 +27,7 @@ function LecturePage() {
                 setLoading(false)
             })
 
-        getLectureQuestions(id)
+        getLectureQuestion(id)
             .then((response) => {
                 setQuestions(response.data.questions)
             })
@@ -43,7 +43,14 @@ function LecturePage() {
             setQuestions([...questions, response.data.question])
             setNewQuestion('')
         } catch (err) {
-            setError(err.response?.data?.detail || 'Failed to ask question')
+            const detail = err.response?.data?.detail
+if (typeof detail === 'string') {
+    setError(detail)
+} else if (Array.isArray(detail)) {
+    setError(detail.map(d => d.msg).join(', '))
+} else {
+    setError('Failed to ask question')
+}
         } finally {
             setAsking(false)
         }
