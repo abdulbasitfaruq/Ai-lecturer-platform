@@ -7,6 +7,7 @@ function GeneratePage() {
     const [topic, setTopic] = useState('')
     const [subject, setSubject] = useState('')
     const [difficulty, setDifficulty] = useState('intermediate')
+    const [voice, setVoice] = useState('onyx')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
 
@@ -18,7 +19,7 @@ function GeneratePage() {
         setLoading(true)
 
         try {
-            const response = await generateLecture(topic, subject, difficulty, user.id)
+            const response = await generateLecture(topic, subject, difficulty, user.id, voice)
             navigate(`/lecture/${response.data.lecture.id}`)
         } catch (err) {
             const detail = err.response?.data?.detail
@@ -83,6 +84,22 @@ if (typeof detail === 'string') {
                             <option value="beginner">Beginner</option>
                             <option value="intermediate">Intermediate</option>
                             <option value="advanced">Advanced</option>
+                        </select>
+                    </div>
+
+                    <div className="mb-6">
+                        <label className="block text-sm text-gray-500 mb-1">AI Voice</label>
+                        <select
+                            value={voice}
+                            onChange={(e) => setVoice(e.target.value)}
+                            className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-700 bg-white"
+                        >
+                            <option value="onyx">Onyx — deep, authoritative</option>
+                            <option value="nova">Nova — friendly, energetic</option>
+                            <option value="echo">Echo — warm, smooth</option>
+                            <option value="alloy">Alloy — neutral, balanced</option>
+                            <option value="fable">Fable — British, storytelling</option>
+                            <option value="shimmer">Shimmer — soft, gentle</option>
                         </select>
                     </div>
 

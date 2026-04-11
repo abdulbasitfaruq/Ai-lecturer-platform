@@ -5,6 +5,8 @@ from src.models import user, lectures, question  # Ensure models are imported to
 from src.routes.auth_routes import router as auth_router
 from src.routes.lecture_routes import router as lecture_router
 from src.routes.qa_routes import router as qa_router
+from fastapi.staticfiles import StaticFiles
+import os
 
 
 
@@ -22,9 +24,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 app.include_router(auth_router)
 app.include_router(lecture_router)
 app.include_router(qa_router)
+
+os.makedirs("audio", exist_ok=True)
+app.mount("/audio", StaticFiles(directory="audio"), name="audio")
+
 
 
 @app.on_event("startup")

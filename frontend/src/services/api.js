@@ -19,12 +19,13 @@ export const loginUser = (username, password) => {
 }
 
 
-export const generateLecture = (topic, subject, difficulty, userID) => {
+export const generateLecture = (topic, subject, difficulty, userID, voice = 'onyx') => {
     return API.post('/lectures/generate', {
         topic,
         subject,
         difficulty,
-        user_id: userID
+        user_id: userID,
+        voice: voice
     });
 }
 

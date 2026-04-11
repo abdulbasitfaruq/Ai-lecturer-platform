@@ -16,6 +16,7 @@ class UserLectureRequest(BaseModel):
      difficulty: str = "intermediate"
      user_id: int
      subject: str
+     voice: str = "onyx"
      
 @router.post("/generate")
 def generate_user_lecture(lecture: UserLectureRequest, db: Session = Depends(get_db)):
@@ -23,6 +24,7 @@ def generate_user_lecture(lecture: UserLectureRequest, db: Session = Depends(get
         topic=lecture.topic,
         subject=lecture.subject,
         difficulty=lecture.difficulty,
+        voice=lecture.voice,
         user_id=lecture.user_id,
         db=db
     )

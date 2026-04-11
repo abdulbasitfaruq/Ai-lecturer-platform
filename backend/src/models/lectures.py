@@ -11,6 +11,7 @@ class Lecture(Base):
     content = Column(Text, nullable=False)
     summary = Column(Text, nullable=True)
     difficulty = Column(String, nullable=True)
+    audio_file = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     

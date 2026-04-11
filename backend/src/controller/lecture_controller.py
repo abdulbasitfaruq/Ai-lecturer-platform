@@ -1,9 +1,9 @@
 from sqlalchemy.orm import Session
 from src.models.lectures import Lecture
-from src.services.ai_service import generate_lecture
+from src.services.ai_service import generate_lecture ,generate_audio
 from fastapi import HTTPException
 
-def create_lecture(db: Session, user_id: int, topic: str, subject: str, difficulty: str):
+def create_lecture(db: Session, user_id: int, topic: str, subject: str, difficulty: str, voice: str = "onyx"):
 
     ai_response = generate_lecture(topic=topic, subject=subject, difficulty=difficulty)
 
@@ -19,7 +19,22 @@ def create_lecture(db: Session, user_id: int, topic: str, subject: str, difficul
      
     db.add(new_lecture)
     db.commit()
-    db.refresh(new_lecture) 
+    db.refresh(new_lecture)
+    
+    # Generate audio for the lecture
+    audio_filename = None
+    try:
+        audio_filename = generate_audio(
+            text=ai_response["content"],
+            lecture_id=new_lecture.id,
+            voice=voice
+        )
+        # Save audio filename to database
+        new_lecture.audio_file = audio_filename
+        db.commit()
+    except Exception as e:
+        print(f"Audio generation failed: {str(e)}") 
+    
 
     return {
         "message": "Lecture created successfully",
@@ -30,6 +45,7 @@ def create_lecture(db: Session, user_id: int, topic: str, subject: str, difficul
              "content": new_lecture.content,
               "summary": new_lecture.summary,
               "difficulty": new_lecture.difficulty,
+              "audio_file": new_lecture.audio_file,
              "created_at": str(new_lecture.created_at)
         }
      }
@@ -74,7 +90,8 @@ def get_lectures_by_user(db: Session, user_id: int):
                 "summary": lecture.summary,
                 "difficulty": lecture.difficulty,
                 "created_at": lecture.created_at,
-                "subject": lecture.subject
+                "subject": lecture.subject,
+                "audio_file": lecture.audio_file
             }
             for lecture in lectures
         ]

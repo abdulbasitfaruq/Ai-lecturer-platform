@@ -89,6 +89,17 @@ if (typeof detail === 'string') {
                     <div className="flex gap-3 text-sm text-gray-500 mb-6">
                         <span>{lecture.subject}</span>
                     </div>
+                    {lecture.audio_file && (
+                        <div className="bg-gray-50 rounded-xl p-4 mb-6 flex items-center gap-4">
+                            <audio
+                                controls
+                                className="w-full"
+                                src={`http://localhost:8000/audio/${lecture.audio_file}`}
+                            >
+                                Your browser does not support audio.
+                            </audio>
+                        </div>
+                    )}
 
                     <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed whitespace-pre-line">
                         {lecture.content}
