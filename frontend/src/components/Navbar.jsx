@@ -1,24 +1,28 @@
-import {Link, useNavigate} from 'react-router-dom';
-import { useState , useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 
 function Navbar() {
-    const navigate = useNavigate();
-    const [user, setUser] = useState(null);
+    const navigate = useNavigate()
+    const location = useLocation()
+    const [user, setUser] = useState(null)
 
     useEffect(() => {
-        const savedUser = localStorage.getItem('user');
+        const savedUser = localStorage.getItem('user')
         if (savedUser) {
-              const parsed = (JSON.parse(savedUser));
-              if (parsed) {
-                setUser(parsed);
-              }
+            const parsed = JSON.parse(savedUser)
+            if (parsed) {
+                setUser(parsed)
+            }
+        } else {
+            setUser(null)
         }
-    }, []);
+    }, [location])
 
     const handleLogout = () => {
-        localStorage.removeItem('user');
-        setUser(null);
-        navigate('/');
+        localStorage.removeItem('user')
+        localStorage.removeItem('token')
+        setUser(null)
+        navigate('/')
     }
 
     return (
@@ -56,17 +60,14 @@ function Navbar() {
                         <Link to="/guest" className="text-sm text-gray-500 hover:text-gray-900">
                             Try as guest
                         </Link>
-                       <Link
+                        <Link
                             to="/register"
                             className="text-sm bg-emerald-700 text-white px-4 py-1.5 rounded-lg hover:bg-emerald-800"
-                        > 
-                         Get started
-                        </Link>
-                        <Link
-                            to="/login"
-                            className="text-sm text-gray-500 hover:text-gray-900"
                         >
-                        Sign in
+                            Get started
+                        </Link>
+                        <Link to="/login" className="text-sm text-gray-500 hover:text-gray-900">
+                            Sign in
                         </Link>
                     </>
                 )}

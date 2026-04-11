@@ -1,8 +1,9 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { getUserLectures } from '../services/api'
 
 function HomePage() {
+    const location = useLocation()
     const [user, setUser] = useState(null)
     const [lectures, setLectures] = useState([])
 
@@ -17,8 +18,11 @@ function HomePage() {
                     setLectures(response.data.lectures || [])
                 })
                 .catch(() => {})
+        } else {
+            setUser(null)
+            setLectures([])
         }
-    }, [])
+    }, [location])
 
     return (
         <div>
