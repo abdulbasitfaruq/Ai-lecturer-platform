@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { getUserLectures } from '../services/api'
+import { getUserLectures, getLectureQuestion } from '../services/api'
 
 function DashboardPage() {
     const navigate = useNavigate()
     const [user, setUser] = useState(null)
     const [lectures, setLectures] = useState([])
     const [loading, setLoading] = useState(true)
+    const [questionCount, setQuestionCount] = useState(0)
 
     useEffect(() => {
         const savedUser = localStorage.getItem('user')
@@ -20,8 +21,20 @@ function DashboardPage() {
 
         getUserLectures(userData.id)
             .then((response) => {
-                setLectures(response.data.lectures)
+                setLectures(response.data.lectures || [])
                 setLoading(false)
+
+                let totalQuestions = 0
+                const lectureList = response.data.lectures || []
+                
+                lectureList.forEach((lecture) => {
+                    getLectureQuestion(lecture.id)
+                        .then((qResponse) => {
+                            totalQuestions += (qResponse.data.questions || []).length
+                            setQuestionCount(totalQuestions)
+                        })
+                        .catch(() => {})
+                })
             })
             .catch(() => {
                 setLoading(false)
@@ -30,7 +43,9 @@ function DashboardPage() {
 
     if (!user) return null
 
-     return (
+    const subjectCount = [...new Set(lectures.map(l => l.subject))].length
+
+    return (
         <div className="bg-gray-50 min-h-screen">
             <div className="bg-emerald-700 px-7 py-8">
                 <h1 className="text-xl font-bold text-white">
@@ -45,15 +60,15 @@ function DashboardPage() {
                         <p className="text-xs text-emerald-200">Lectures</p>
                     </div>
                     <div className="bg-white/10 rounded-xl p-4 text-center">
-                        <p className="text-2xl font-bold text-white">0</p>
+                        <p className="text-2xl font-bold text-white">{questionCount}</p>
                         <p className="text-xs text-emerald-200">Questions</p>
                     </div>
                     <div className="bg-white/10 rounded-xl p-4 text-center">
-                        <p className="text-2xl font-bold text-white">0</p>
+                        <p className="text-2xl font-bold text-white">{subjectCount}</p>
                         <p className="text-xs text-emerald-200">Subjects</p>
                     </div>
                     <div className="bg-white/10 rounded-xl p-4 text-center">
-                        <p className="text-2xl font-bold text-white">0</p>
+                        <p className="text-2xl font-bold text-white">{lectures.length > 0 ? 1 : 0}</p>
                         <p className="text-xs text-emerald-200">Day streak</p>
                     </div>
                 </div>
@@ -104,4 +119,3 @@ function DashboardPage() {
 }
 
 export default DashboardPage
-

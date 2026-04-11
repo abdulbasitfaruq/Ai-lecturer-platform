@@ -56,11 +56,17 @@ function Navbar() {
                         <Link to="/guest" className="text-sm text-gray-500 hover:text-gray-900">
                             Try as guest
                         </Link>
+                       <Link
+                            to="/register"
+                            className="text-sm bg-emerald-700 text-white px-4 py-1.5 rounded-lg hover:bg-emerald-800"
+                        > 
+                         Get started
+                        </Link>
                         <Link
                             to="/login"
-                            className="text-sm bg-emerald-700 text-white px-4 py-1.5 rounded-lg hover:bg-emerald-800"
+                            className="text-sm text-gray-500 hover:text-gray-900"
                         >
-                            Sign in
+                        Sign in
                         </Link>
                     </>
                 )}
