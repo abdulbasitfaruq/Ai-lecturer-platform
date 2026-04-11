@@ -74,33 +74,101 @@ def answer_question(lecture_content: str, question: str) -> str:
     except Exception as e:
         raise Exception(f"Error answering question: {str(e)}")
       
-def generate_audio(text: str, lecture_id: int, voice:str = "onyx") -> str:
+def stream_lecture(topic: str, subject: str, difficulty: str = "intermediate"):
     """
-     Converts lecture text to audio using OpenAI TTS API.
-     Saves the audio file and returns the filename.
+    Streams lecture content paragraph by paragraph using OpenAI streaming.
+    Yields text chunks as they are generated.
+    """
+    prompt = f"""
+    You are expert university lecturer in {subject}. Generate a detailed educational lecture.
+    Topic: {topic}
+    Subject: {subject}
+    Difficulty Level: {difficulty}
+    
+    Structure the lecture as follows:
+    1. Introduction: Briefly introduce the topic and its importance.
+    2. Main Content: Provide a comprehensive explanation of the topic.
+    3. Examples: Include relevant examples to illustrate the concepts.
+    4. Conclusion: Summarize the main points and provide any final thoughts.
+    
+    Make it engaging and informative, suitable for students at the {difficulty} level.
+    Make sure the lecture is specifically about {topic} in the context of {subject}.
+    
+    IMPORTANT: Do NOT include a title at the start. Jump straight into the introduction.
+    """
+    
+    try:
+        response = client.chat.completions.create(
+            model="gpt-5-nano",
+            messages=[
+                {"role": "system", "content": "You are an expert university lecturer delivering a live lecture."},
+                {"role": "user", "content": prompt}
+            ],
+            stream=True
+        )
+        
+        for chunk in response:
+            if chunk.choices[0].delta.content:
+                yield chunk.choices[0].delta.content
+                
+    except Exception as e:
+        raise Exception(f"Error streaming lecture: {str(e)}")
+
+
+def stream_answer(lecture_content: str, question: str):
+    """
+    Streams an answer to a student question.
+    Yields text chunks as they are generated.
+    """
+    prompt = f"""
+    You are an expert university lecturer. A student has asked a question during your live lecture.
+    Answer based on the lecture content provided.
+    
+    Lecture Content: {lecture_content}
+    Student's Question: {question}
+    
+    Provide a clear, helpful answer. Keep it concise since this is a live lecture.
+    """
+    
+    try:
+        response = client.chat.completions.create(
+            model="gpt-5-nano",
+            messages=[
+                {"role": "system", "content": "You are an expert university lecturer answering a student's question during a live lecture."},
+                {"role": "user", "content": prompt}
+            ],
+            stream=True
+        )
+        
+        for chunk in response:
+            if chunk.choices[0].delta.content:
+                yield chunk.choices[0].delta.content
+                
+    except Exception as e:
+        raise Exception(f"Error streaming answer: {str(e)}")
+
+
+def generate_audio_chunk(text: str, chunk_id: str, voice: str = "onyx") -> str:
+    """
+    Converts a paragraph of text to audio.
+    Used for syncing audio with streamed text.
+    Returns the filename.
     """
     try:
-        # OpenAI TTS has a limit of 4096 characters per request
-        # So we take the first 4096 characters if the text is longer
-        if len(text) > 4096:
-            text = text[:4096]
-
         response = client.audio.speech.create(
             model="tts-1",
             voice=voice,
             input=text
         )
 
-        # Create the filename using the lecture ID
-        filename = f"lecture_{lecture_id}.mp3"
+        filename = f"chunk_{chunk_id}.mp3"
         filepath = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "audio", filename)
 
-        # Save the audio file
         response.stream_to_file(filepath)
 
-        return filename 
+        return filename
 
     except Exception as e:
-        raise Exception(f"Error generating audio: {str(e)}")
+        raise Exception(f"Error generating audio chunk: {str(e)}")
 
     
