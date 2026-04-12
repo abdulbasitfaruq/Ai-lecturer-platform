@@ -54,4 +54,24 @@ export const getLectureQuestion = (lectureId) => {
     return API.get(`/qa/lectures/${lectureId}/questions`);
 }
 
+export const getAudioUrl = (filename) => {
+    return `http://localhost:8000/audio/${filename}`
+}
+
+export const streamLecture = (topic, subject, difficulty, voice = 'onyx') => {
+    return fetch('http://localhost:8000/lectures/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic, subject, difficulty, voice })
+    })
+}
+
+export const streamQuestion = (lectureContent, question, voice = 'onyx') => {
+    return fetch('http://localhost:8000/lectures/stream/question', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lecture_content: lectureContent, question, voice })
+    })
+}
+
 
