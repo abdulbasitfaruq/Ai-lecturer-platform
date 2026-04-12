@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { generateLecture } from '../services/api'
 
 function GeneratePage() {
     const navigate = useNavigate()
@@ -8,34 +7,13 @@ function GeneratePage() {
     const [subject, setSubject] = useState('')
     const [difficulty, setDifficulty] = useState('intermediate')
     const [voice, setVoice] = useState('onyx')
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState('')
 
-    const user = JSON.parse(localStorage.getItem('user'))
-
-    const handleGenerate = async (e) => {
+    const handleGenerate = (e) => {
         e.preventDefault()
-        setError('')
-        setLoading(true)
-
-        try {
-            const response = await generateLecture(topic, subject, difficulty, user.id, voice)
-            navigate(`/lecture/${response.data.lecture.id}`)
-        } catch (err) {
-            const detail = err.response?.data?.detail
-if (typeof detail === 'string') {
-    setError(detail)
-} else if (Array.isArray(detail)) {
-    setError(detail.map(d => d.msg).join(', '))
-} else {
-    setError('Failed to generate lecture')
-}
-        } finally {
-            setLoading(false)
-        }
+        navigate(`/live?topic=${encodeURIComponent(topic)}&subject=${encodeURIComponent(subject)}&difficulty=${difficulty}&voice=${voice}`)
     }
 
-        return (
+    return (
         <div className="bg-gray-50 min-h-screen py-12">
             <div className="max-w-lg mx-auto">
                 <div className="bg-white rounded-2xl border border-gray-200 p-8">
@@ -45,12 +23,6 @@ if (typeof detail === 'string') {
                     <p className="text-sm text-gray-500 mb-6">
                         Your AI lecturer will create a comprehensive lesson tailored to your level.
                     </p>
-
-                    {error && (
-                        <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-4">
-                            {error}
-                        </div>
-                    )}
 
                     <div className="mb-4">
                         <label className="block text-sm text-gray-500 mb-1">Topic</label>
@@ -105,17 +77,11 @@ if (typeof detail === 'string') {
 
                     <button
                         onClick={handleGenerate}
-                        disabled={loading || !topic || !subject}
+                        disabled={!topic || !subject}
                         className="w-full bg-emerald-700 text-white py-2.5 rounded-lg font-semibold hover:bg-emerald-800 disabled:bg-gray-300"
                     >
-                        {loading ? 'Generating lecture...' : 'Generate lecture'}
+                        Generate lecture
                     </button>
-
-                    {loading && (
-                        <p className="text-sm text-gray-500 text-center mt-3">
-                            This may take 15-30 seconds...
-                        </p>
-                    )}
                 </div>
             </div>
         </div>

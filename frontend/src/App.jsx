@@ -8,6 +8,7 @@ import DashboardPage from './pages/DashboardPage'
 import GeneratePage from './pages/GeneratePage'
 import LecturePage from './pages/LecturePage'
 import GuestPage from './pages/GuestPage'
+import LiveLecturePage from './pages/LiveLecturePage'
 
 function App() {
     return (
@@ -21,6 +22,7 @@ function App() {
                         <Route path="/generate" element={<GeneratePage />} />
                         <Route path="/lecture/:id" element={<LecturePage />} />
                         <Route path="/guest" element={<GuestPage />} />
+                       <Route path="/live" element={<LiveLecturePage />} />
                     </Routes>
                 <Footer />
         </BrowserRouter>

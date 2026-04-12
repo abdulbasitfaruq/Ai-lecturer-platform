@@ -113,6 +113,31 @@ def stream_lecture(topic: str, subject: str, difficulty: str = "intermediate"):
                 
     except Exception as e:
         raise Exception(f"Error streaming lecture: {str(e)}")
+    
+def generate_audio(text: str, lecture_id: int, voice: str = "onyx") -> str:
+    """
+    Converts lecture text to audio using OpenAI TTS API.
+    Saves the audio file and returns the filename.
+    """
+    try:
+        if len(text) > 4096:
+            text = text[:4096]
+
+        response = client.audio.speech.create(
+            model="tts-1",
+            voice=voice,
+            input=text
+        )
+
+        filename = f"lecture_{lecture_id}.mp3"
+        filepath = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "audio", filename)
+
+        response.stream_to_file(filepath)
+
+        return filename
+
+    except Exception as e:
+        raise Exception(f"Error generating audio: {str(e)}")
 
 
 def stream_answer(lecture_content: str, question: str):
