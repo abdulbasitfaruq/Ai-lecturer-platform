@@ -4,9 +4,10 @@ from sqlalchemy.orm import Session
 from src.config.database import get_db
 from pydantic import BaseModel
 from src.controller.lecture_controller import create_lecture, create_guest_lecture, get_lectures_by_user
-from src.services.ai_service import stream_lecture, stream_answer, generate_audio_chunk
+from src.services.ai_service import stream_lecture, stream_answer, generate_audio_chunk, client
 import json
 import uuid
+import base64
 
 router = APIRouter(prefix="/lectures", tags=["lectures"])
 
@@ -32,6 +33,14 @@ class StreamQuestionRequest(BaseModel):
     lecture_content: str
     question: str
     voice: str = "onyx"
+    
+class SaveLectureRequest(BaseModel):
+    topic: str
+    subject: str
+    difficulty: str
+    content: str
+    user_id: int
+    audio_file: str = None
 
 @router.post("/generate")
 def generate_user_lecture(lecture: UserLectureRequest, db: Session = Depends(get_db)):
@@ -57,50 +66,77 @@ def generate_guest_lecture(lecture: LectureRequest, db: Session = Depends(get_db
 def lecture_history(user_id: int, db: Session = Depends(get_db)):
     return get_lectures_by_user(user_id=user_id, db=db)
 
+
+
 @router.post("/stream")
 def stream_lecture_endpoint(request: StreamRequest):
     def generate():
-        paragraph = ""
+        sentence_buffer = ""
         full_content = ""
 
         for chunk in stream_lecture(request.topic, request.subject, request.difficulty):
             full_content += chunk
+            sentence_buffer += chunk
 
-            # Send each text chunk to frontend
-            data = json.dumps({"type": "text", "content": chunk})
-            yield f"data: {data}\n\n"
+            # Check if we have a complete sentence
+            while any(end in sentence_buffer for end in ['. ', '? ', '! ', '.\n', '?\n', '!\n']):
+                # Find the earliest sentence ending
+                earliest_pos = len(sentence_buffer)
+                for end in ['. ', '? ', '! ', '.\n', '?\n', '!\n']:
+                    pos = sentence_buffer.find(end)
+                    if pos != -1 and pos < earliest_pos:
+                        earliest_pos = pos + len(end)
 
-            # Collect text into paragraphs
-            paragraph += chunk
+                sentence = sentence_buffer[:earliest_pos].strip()
+                sentence_buffer = sentence_buffer[earliest_pos:]
 
-            # When we hit a double newline, a paragraph is complete
-            if "\n\n" in paragraph:
-                parts = paragraph.split("\n\n")
-                # Process all complete paragraphs
-                for complete_paragraph in parts[:-1]:
-                    clean_text = complete_paragraph.strip()
-                    if len(clean_text) > 20:
-                        try:
-                            chunk_id = str(uuid.uuid4())[:8]
-                            audio_file = generate_audio_chunk(clean_text, chunk_id, request.voice)
-                            audio_data = json.dumps({"type": "audio", "filename": audio_file})
-                            yield f"data: {audio_data}\n\n"
-                        except Exception as e:
-                            print(f"Audio chunk failed: {str(e)}")
-                # Keep the incomplete part
-                paragraph = parts[-1]
+                if len(sentence) > 10:
+                    # Generate audio for this exact sentence
+                    try:
+                        audio_response = client.audio.speech.create(
+                            model="tts-1",
+                            voice=request.voice,
+                            input=sentence
+                        )
+                        audio_bytes = audio_response.read()
+                        audio_base64 = base64.b64encode(audio_bytes).decode('utf-8')
 
-        # Handle the last paragraph
-        if paragraph.strip() and len(paragraph.strip()) > 20:
+                        data = json.dumps({
+                            "type": "chunk",
+                            "text": sentence,
+                            "audio": audio_base64
+                        })
+                        yield f"data: {data}\n\n"
+                    except Exception as e:
+                        print(f"TTS failed: {e}")
+                        data = json.dumps({
+                            "type": "chunk",
+                            "text": sentence,
+                            "audio": None
+                        })
+                        yield f"data: {data}\n\n"
+
+        # Handle remaining text in buffer
+        if sentence_buffer.strip() and len(sentence_buffer.strip()) > 10:
             try:
-                chunk_id = str(uuid.uuid4())[:8]
-                audio_file = generate_audio_chunk(paragraph.strip(), chunk_id, request.voice)
-                audio_data = json.dumps({"type": "audio", "filename": audio_file})
-                yield f"data: {audio_data}\n\n"
-            except Exception as e:
-                print(f"Audio chunk failed: {str(e)}")
+                audio_response = client.audio.speech.create(
+                    model="tts-1",
+                    voice=request.voice,
+                    input=sentence_buffer.strip()
+                )
+                audio_bytes = audio_response.read()
+                audio_base64 = base64.b64encode(audio_bytes).decode('utf-8')
 
-        # Send the complete content at the end
+                data = json.dumps({
+                    "type": "chunk",
+                    "text": sentence_buffer.strip(),
+                    "audio": audio_base64
+                })
+                yield f"data: {data}\n\n"
+            except Exception as e:
+                print(f"TTS failed: {e}")
+
+        # Send done signal with full content
         done_data = json.dumps({"type": "done", "full_content": full_content})
         yield f"data: {done_data}\n\n"
 
@@ -109,28 +145,105 @@ def stream_lecture_endpoint(request: StreamRequest):
 @router.post("/stream/question")
 def stream_question_endpoint(request: StreamQuestionRequest):
     def generate():
+        sentence_buffer = ""
         full_answer = ""
 
         for chunk in stream_answer(request.lecture_content, request.question):
             full_answer += chunk
-            data = json.dumps({"type": "text", "content": chunk})
-            yield f"data: {data}\n\n"
+            sentence_buffer += chunk
 
-        # Generate audio for the complete answer
-        try:
-            chunk_id = str(uuid.uuid4())[:8]
-            audio_file = generate_audio_chunk(full_answer, chunk_id, request.voice)
-            audio_data = json.dumps({"type": "audio", "filename": audio_file})
-            yield f"data: {audio_data}\n\n"
-        except Exception as e:
-            print(f"Answer audio failed: {str(e)}")
+            while any(end in sentence_buffer for end in ['. ', '? ', '! ', '.\n', '?\n', '!\n']):
+                earliest_pos = len(sentence_buffer)
+                for end in ['. ', '? ', '! ', '.\n', '?\n', '!\n']:
+                    pos = sentence_buffer.find(end)
+                    if pos != -1 and pos < earliest_pos:
+                        earliest_pos = pos + len(end)
+
+                sentence = sentence_buffer[:earliest_pos].strip()
+                sentence_buffer = sentence_buffer[earliest_pos:]
+
+                if len(sentence) > 10:
+                    try:
+                        audio_response = client.audio.speech.create(
+                            model="tts-1",
+                            voice=request.voice,
+                            input=sentence
+                        )
+                        audio_bytes = audio_response.read()
+                        audio_base64 = base64.b64encode(audio_bytes).decode('utf-8')
+
+                        data = json.dumps({
+                            "type": "chunk",
+                            "text": sentence,
+                            "audio": audio_base64
+                        })
+                        yield f"data: {data}\n\n"
+                    except Exception as e:
+                        print(f"TTS failed: {e}")
+
+        if sentence_buffer.strip() and len(sentence_buffer.strip()) > 10:
+            try:
+                audio_response = client.audio.speech.create(
+                    model="tts-1",
+                    voice=request.voice,
+                    input=sentence_buffer.strip()
+                )
+                audio_bytes = audio_response.read()
+                audio_base64 = base64.b64encode(audio_bytes).decode('utf-8')
+
+                data = json.dumps({
+                    "type": "chunk",
+                    "text": sentence_buffer.strip(),
+                    "audio": audio_base64
+                })
+                yield f"data: {data}\n\n"
+            except Exception as e:
+                print(f"TTS failed: {e}")
 
         done_data = json.dumps({"type": "done", "full_answer": full_answer})
         yield f"data: {done_data}\n\n"
 
     return StreamingResponse(generate(), media_type="text/event-stream")
 
+@router.post("/save")
+def save_lecture(request: SaveLectureRequest, db: Session = Depends(get_db)):
+    from src.models.lectures import Lecture
     
+    # Generate summary
+    from src.services.ai_service import client
+    try:
+        summary_response = client.chat.completions.create(
+            model="gpt-5-nano",
+            messages=[
+                {"role": "user", "content": f"Summarize this lecture in 2-3 sentences: {request.content[:2000]}"}
+            ]
+        )
+        summary = summary_response.choices[0].message.content
+    except:
+        summary = ""
+
+    new_lecture = Lecture(
+        user_id=request.user_id,
+        topic=request.topic,
+        subject=request.subject,
+        content=request.content,
+        summary=summary,
+        difficulty=request.difficulty,
+        audio_file=request.audio_file
+    )
+
+    db.add(new_lecture)
+    db.commit()
+    db.refresh(new_lecture)
+
+    return {
+        "message": "Lecture saved",
+        "lecture": {
+            "id": new_lecture.id,
+            "topic": new_lecture.topic,
+            "subject": new_lecture.subject
+        }
+    }    
     
         
         

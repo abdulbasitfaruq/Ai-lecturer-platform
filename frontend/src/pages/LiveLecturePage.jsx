@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
-import { useSearchParams, Link, useNavigate } from 'react-router-dom'
-import { getAudioUrl, streamLecture, streamQuestion } from '../services/api'
-import { generateLecture } from '../services/api'
+import { useSearchParams, useNavigate } from 'react-router-dom'
+import { streamLecture, streamQuestion, saveLecture } from '../services/api'
 
 function LiveLecturePage() {
     const [searchParams] = useSearchParams()
@@ -12,56 +11,103 @@ function LiveLecturePage() {
     const difficulty = searchParams.get('difficulty') || 'intermediate'
     const voice = searchParams.get('voice') || 'onyx'
 
-    const [lectureText, setLectureText] = useState('')
+    const [sentences, setSentences] = useState([])
+    const [currentSentenceIndex, setCurrentSentenceIndex] = useState(-1)
     const [isStreaming, setIsStreaming] = useState(false)
-    const [isPaused, setIsPaused] = useState(false)
     const [isFinished, setIsFinished] = useState(false)
-    const [audioQueue, setAudioQueue] = useState([])
-    const [currentAudio, setCurrentAudio] = useState(null)
     const [question, setQuestion] = useState('')
     const [isAsking, setIsAsking] = useState(false)
+    const [answerSentences, setAnswerSentences] = useState([])
+    const [currentAnswerIndex, setCurrentAnswerIndex] = useState(-1)
     const [qaPairs, setQaPairs] = useState([])
-    const [answerText, setAnswerText] = useState('')
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState('')
 
-    const textRef = useRef(null)
-    const audioRef = useRef(null)
-    const pausedRef = useRef(false)
+    const audioQueueRef = useRef([])
+    const isPlayingRef = useRef(false)
+    const currentAudioRef = useRef(null)
     const fullContentRef = useRef('')
+    const textContainerRef = useRef(null)
+    const shouldStopRef = useRef(false)
 
     const user = JSON.parse(localStorage.getItem('user'))
 
-    // Auto-scroll text as it streams
+    // Auto-scroll
     useEffect(() => {
-        if (textRef.current) {
-            textRef.current.scrollTop = textRef.current.scrollHeight
+        if (textContainerRef.current) {
+            textContainerRef.current.scrollTop = textContainerRef.current.scrollHeight
         }
-    }, [lectureText, answerText])
+    }, [sentences, answerSentences])
 
-    // Play audio queue
-    useEffect(() => {
-        if (audioQueue.length > 0 && !currentAudio && !pausedRef.current) {
-            const nextAudio = audioQueue[0]
-            const audio = new Audio(getAudioUrl(nextAudio))
-            audioRef.current = audio
-            setCurrentAudio(nextAudio)
-
-            audio.play().catch(() => {})
-
-            audio.onended = () => {
-                setAudioQueue(prev => prev.slice(1))
-                setCurrentAudio(null)
-                audioRef.current = null
-            }
+    // Play next audio in queue
+    const playNextInQueue = () => {
+        if (shouldStopRef.current || audioQueueRef.current.length === 0) {
+            isPlayingRef.current = false
+            return
         }
-    }, [audioQueue, currentAudio])
 
+        isPlayingRef.current = true
+        const { audio, index, isAnswer } = audioQueueRef.current.shift()
 
+        // Highlight current sentence
+        if (isAnswer) {
+            setCurrentAnswerIndex(index)
+        } else {
+            setCurrentSentenceIndex(index)
+        }
+
+        // Decode base64 audio and play
+        const audioBytes = atob(audio)
+        const arrayBuffer = new ArrayBuffer(audioBytes.length)
+        const view = new Uint8Array(arrayBuffer)
+        for (let i = 0; i < audioBytes.length; i++) {
+            view[i] = audioBytes.charCodeAt(i)
+        }
+        const blob = new Blob([arrayBuffer], { type: 'audio/mp3' })
+        const url = URL.createObjectURL(blob)
+
+        const audioElement = new Audio(url)
+        currentAudioRef.current = audioElement
+
+        audioElement.onended = () => {
+            currentAudioRef.current = null
+            URL.revokeObjectURL(url)
+            playNextInQueue()
+        }
+
+        audioElement.play().catch(() => {
+            playNextInQueue()
+        })
+    }
+
+    // Add audio to queue
+    const addToQueue = (audio, index, isAnswer = false) => {
+        audioQueueRef.current.push({ audio, index, isAnswer })
+        if (!isPlayingRef.current) {
+            playNextInQueue()
+        }
+    }
+
+    // Stop all audio
+    const stopAllAudio = () => {
+        shouldStopRef.current = true
+        audioQueueRef.current = []
+        if (currentAudioRef.current) {
+            currentAudioRef.current.pause()
+            currentAudioRef.current = null
+        }
+        isPlayingRef.current = false
+        setCurrentSentenceIndex(-1)
+        setCurrentAnswerIndex(-1)
+    }
+
+    // Start streaming lecture
     const startStreaming = async () => {
         setIsStreaming(true)
-        setLectureText('')
+        setSentences([])
         fullContentRef.current = ''
+        shouldStopRef.current = false
+        let sentenceIndex = 0
 
         try {
             const response = await streamLecture(topic, subject, difficulty, voice)
@@ -80,68 +126,56 @@ function LiveLecturePage() {
                         try {
                             const data = JSON.parse(line.slice(6))
 
-                            if (data.type === 'text') {
-                                setLectureText(prev => prev + data.content)
-                                fullContentRef.current += data.content
-                            } else if (data.type === 'audio') {
-                                setAudioQueue(prev => [...prev, data.filename])
+                            if (data.type === 'chunk') {
+                                fullContentRef.current += data.text + ' '
+                                const idx = sentenceIndex
+                                setSentences(prev => [...prev, data.text])
+
+                                if (data.audio) {
+                                    addToQueue(data.audio, idx, false)
+                                }
+                                sentenceIndex++
                             } else if (data.type === 'done') {
                                 setIsFinished(true)
                                 setIsStreaming(false)
                             }
-                        } catch (e) {}
+                        } catch {}
                     }
                 }
-
-                // Wait if paused
-                while (pausedRef.current) {
-                    await new Promise(resolve => setTimeout(resolve, 100))
-                }
             }
-        } catch (err) {
+        } catch {
             setError('Failed to stream lecture')
             setIsStreaming(false)
         }
     }
-    // Start streaming when page loads
+
     useEffect(() => {
         if (topic && subject) {
             startStreaming()
         }
     }, [])
 
-    const handlePause = () => {
-        pausedRef.current = true
-        setIsPaused(true)
-        if (audioRef.current) {
-            audioRef.current.pause()
-        }
-    }
-
-    const handleResume = () => {
-        pausedRef.current = false
-        setIsPaused(false)
-        if (audioRef.current) {
-            audioRef.current.play().catch(() => {})
-        }
-    }
-
+    // Ask question
     const handleAskQuestion = async () => {
         if (!question.trim()) return
 
-        // Pause the lecture
-        handlePause()
+        stopAllAudio()
+        shouldStopRef.current = false
+
         setIsAsking(true)
-        setAnswerText('')
+        setAnswerSentences([])
+        setCurrentAnswerIndex(-1)
 
         const currentQuestion = question
         setQuestion('')
+
+        let answerIndex = 0
+        let fullAnswer = ''
 
         try {
             const response = await streamQuestion(fullContentRef.current, currentQuestion, voice)
             const reader = response.body.getReader()
             const decoder = new TextDecoder()
-            let fullAnswer = ''
 
             while (true) {
                 const { done, value } = await reader.read()
@@ -155,37 +189,48 @@ function LiveLecturePage() {
                         try {
                             const data = JSON.parse(line.slice(6))
 
-                            if (data.type === 'text') {
-                                fullAnswer += data.content
-                                setAnswerText(prev => prev + data.content)
-                            } else if (data.type === 'audio') {
-                                setAudioQueue(prev => [...prev, data.filename])
+                            if (data.type === 'chunk') {
+                                fullAnswer += data.text + ' '
+                                const idx = answerIndex
+                                setAnswerSentences(prev => [...prev, data.text])
+
+                                if (data.audio) {
+                                    addToQueue(data.audio, idx, true)
+                                }
+                                answerIndex++
                             } else if (data.type === 'done') {
                                 setQaPairs(prev => [...prev, {
                                     question: currentQuestion,
-                                    answer: fullAnswer
+                                    answer: fullAnswer.trim()
                                 }])
-                                setAnswerText('')
+                                setAnswerSentences([])
+                                setCurrentAnswerIndex(-1)
                                 setIsAsking(false)
                             }
-                        } catch (e) {}
+                        } catch {}
                     }
                 }
             }
-        } catch (err) {
+        } catch {
             setError('Failed to get answer')
             setIsAsking(false)
         }
     }
 
+    // Save lecture
     const handleSave = async () => {
         if (!user) return
         setSaving(true)
 
         try {
-            const response = await generateLecture(topic, subject, difficulty, user.id, voice)
+            const response = await saveLecture(
+                topic, subject, difficulty,
+                fullContentRef.current,
+                user.id,
+                null
+            )
             navigate(`/lecture/${response.data.lecture.id}`)
-        } catch (err) {
+        } catch {
             setError('Failed to save lecture')
             setSaving(false)
         }
@@ -207,7 +252,13 @@ function LiveLecturePage() {
                         </span>
                     )}
                     {isFinished && (
-                        <span className="text-sm text-emerald-200">Lecture complete</span>
+                        <button
+                            onClick={handleSave}
+                            disabled={saving}
+                            className="bg-white text-emerald-700 px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-emerald-50"
+                        >
+                            {saving ? 'Saving...' : 'Save to dashboard'}
+                        </button>
                     )}
                 </div>
             </div>
@@ -219,85 +270,38 @@ function LiveLecturePage() {
                     </div>
                 )}
 
-                {/* Lecture Content */}
+                {/* Teleprompter Box */}
                 <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-4">
                     <div
-                        ref={textRef}
-                        className="prose prose-sm max-w-none text-gray-700 leading-relaxed whitespace-pre-line max-h-96 overflow-y-auto"
+                        ref={textContainerRef}
+                        className="min-h-40 max-h-96 overflow-y-auto leading-relaxed text-base"
                     >
-                        {lectureText}
-                        {isStreaming && !isPaused && (
-                            <span className="inline-block w-2 h-4 bg-emerald-700 animate-pulse ml-1"></span>
+                        {sentences.length === 0 && isStreaming && (
+                            <span className="text-gray-400">Generating lecture...</span>
+                        )}
+                        {sentences.map((sentence, index) => (
+                            <span
+                                key={index}
+                                className={`${
+                                    index === currentSentenceIndex
+                                        ? 'bg-emerald-100 text-emerald-900 font-medium'
+                                        : index < currentSentenceIndex
+                                        ? 'text-gray-500'
+                                        : 'text-gray-700'
+                                } transition-colors duration-200`}
+                            >
+                                {sentence}{' '}
+                            </span>
+                        ))}
+                        {isStreaming && (
+                            <span className="inline-block w-2 h-5 bg-emerald-700 animate-pulse ml-1"></span>
                         )}
                     </div>
                 </div>
 
-                {/* Controls */}
-                <div className="flex gap-3 mb-4">
-                    {isStreaming && !isPaused && (
-                        <button
-                            onClick={handlePause}
-                            className="bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-amber-600"
-                        >
-                            ⏸ Pause
-                        </button>
-                    )}
-                    {isPaused && !isAsking && (
-                        <button
-                            onClick={handleResume}
-                            className="bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-800"
-                        >
-                            ▶ Continue lecture
-                        </button>
-                    )}
-                    {isFinished && (
-                        <>
-                            <button
-                                onClick={handleSave}
-                                disabled={saving}
-                                className="bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-800 disabled:bg-gray-300"
-                            >
-                                {saving ? 'Saving...' : 'Save to dashboard'}
-                            </button>
-                            <Link
-                                to="/dashboard"
-                                className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-gray-300"
-                            >
-                                Back to dashboard
-                            </Link>
-                        </>
-                    )}
-                </div>
-
-                {/* Q&A During Lecture */}
-                {qaPairs.map((qa, index) => (
-                    <div key={index} className="bg-white rounded-2xl border border-gray-200 p-4 mb-3">
-                        <div className="flex items-center gap-2 mb-2">
-                            <span className="text-xs bg-emerald-700 text-white w-5 h-5 rounded flex items-center justify-center font-bold">Q</span>
-                            <p className="text-sm font-semibold text-gray-900">{qa.question}</p>
-                        </div>
-                        <p className="text-sm text-gray-500 leading-relaxed pl-7">{qa.answer}</p>
-                    </div>
-                ))}
-
-                {/* Currently Streaming Answer */}
-                {isAsking && (
-                    <div className="bg-white rounded-2xl border border-emerald-300 p-4 mb-3">
-                        <div className="flex items-center gap-2 mb-2">
-                            <span className="text-xs bg-emerald-700 text-white w-5 h-5 rounded flex items-center justify-center font-bold">Q</span>
-                            <p className="text-sm font-semibold text-gray-900">{qaPairs.length > 0 ? '' : ''}{question || 'Your question'}</p>
-                        </div>
-                        <p className="text-sm text-gray-500 leading-relaxed pl-7">
-                            {answerText}
-                            <span className="inline-block w-2 h-4 bg-emerald-700 animate-pulse ml-1"></span>
-                        </p>
-                    </div>
-                )}
-
-                {/* Ask Question Input */}
-                {(isStreaming || isPaused || isFinished) && !isAsking && (
-                    <div className="bg-white rounded-2xl border border-gray-200 p-4">
-                        <h3 className="text-sm font-bold text-gray-900 mb-3">Ask a question</h3>
+                {/* Ask Question */}
+                {(isStreaming || isFinished) && !isAsking && (
+                    <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-4">
                         <div className="flex gap-2">
                             <input
                                 type="text"
@@ -305,7 +309,7 @@ function LiveLecturePage() {
                                 onChange={(e) => setQuestion(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleAskQuestion()}
                                 className="flex-1 border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-700"
-                                placeholder="Type your question..."
+                                placeholder="Ask a question about the lecture..."
                             />
                             <button
                                 onClick={handleAskQuestion}
@@ -315,9 +319,44 @@ function LiveLecturePage() {
                                 Ask
                             </button>
                         </div>
-                        {isStreaming && (
-                            <p className="text-xs text-gray-400 mt-2">Asking a question will pause the lecture</p>
-                        )}
+                    </div>
+                )}
+
+                {/* Currently streaming answer */}
+                {isAsking && answerSentences.length > 0 && (
+                    <div className="bg-emerald-50 rounded-2xl border border-emerald-200 p-4 mb-4">
+                        <p className="text-sm font-semibold text-gray-900 mb-2">Answering...</p>
+                        <div className="text-sm leading-relaxed">
+                            {answerSentences.map((sentence, index) => (
+                                <span
+                                    key={index}
+                                    className={`${
+                                        index === currentAnswerIndex
+                                            ? 'bg-emerald-200 text-emerald-900 font-medium'
+                                            : 'text-gray-700'
+                                    } transition-colors duration-200`}
+                                >
+                                    {sentence}{' '}
+                                </span>
+                            ))}
+                            <span className="inline-block w-2 h-4 bg-emerald-700 animate-pulse ml-1"></span>
+                        </div>
+                    </div>
+                )}
+
+                {/* Q&A Comment Section */}
+                {qaPairs.length > 0 && (
+                    <div className="bg-white rounded-2xl border border-gray-200 p-6">
+                        <h3 className="text-sm font-bold text-gray-900 mb-4">Questions & Answers</h3>
+                        {qaPairs.map((qa, index) => (
+                            <div key={index} className="py-4 border-b border-gray-100 last:border-0">
+                                <div className="flex items-start gap-2 mb-2">
+                                    <span className="text-xs bg-emerald-700 text-white w-5 h-5 rounded flex items-center justify-center font-bold flex-shrink-0 mt-0.5">Q</span>
+                                    <p className="text-sm font-semibold text-gray-900">{qa.question}</p>
+                                </div>
+                                <p className="text-sm text-gray-600 leading-relaxed pl-7">{qa.answer}</p>
+                            </div>
+                        ))}
                     </div>
                 )}
             </div>

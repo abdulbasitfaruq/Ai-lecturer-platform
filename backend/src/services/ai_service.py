@@ -73,52 +73,8 @@ def answer_question(lecture_content: str, question: str) -> str:
         return answer
     except Exception as e:
         raise Exception(f"Error answering question: {str(e)}")
-      
-def stream_lecture(topic: str, subject: str, difficulty: str = "intermediate"):
-    """
-    Streams lecture content paragraph by paragraph using OpenAI streaming.
-    Yields text chunks as they are generated.
-    """
-    prompt = f"""
-    You are expert university lecturer in {subject}. Generate a detailed educational lecture.
-    Topic: {topic}
-    Subject: {subject}
-    Difficulty Level: {difficulty}
-    
-    Structure the lecture as follows:
-    1. Introduction: Briefly introduce the topic and its importance.
-    2. Main Content: Provide a comprehensive explanation of the topic.
-    3. Examples: Include relevant examples to illustrate the concepts.
-    4. Conclusion: Summarize the main points and provide any final thoughts.
-    
-    Make it engaging and informative, suitable for students at the {difficulty} level.
-    Make sure the lecture is specifically about {topic} in the context of {subject}.
-    
-    IMPORTANT: Do NOT include a title at the start. Jump straight into the introduction.
-    """
-    
-    try:
-        response = client.chat.completions.create(
-            model="gpt-5-nano",
-            messages=[
-                {"role": "system", "content": "You are an expert university lecturer delivering a live lecture."},
-                {"role": "user", "content": prompt}
-            ],
-            stream=True
-        )
-        
-        for chunk in response:
-            if chunk.choices[0].delta.content:
-                yield chunk.choices[0].delta.content
-                
-    except Exception as e:
-        raise Exception(f"Error streaming lecture: {str(e)}")
-    
+
 def generate_audio(text: str, lecture_id: int, voice: str = "onyx") -> str:
-    """
-    Converts lecture text to audio using OpenAI TTS API.
-    Saves the audio file and returns the filename.
-    """
     try:
         if len(text) > 4096:
             text = text[:4096]
@@ -137,9 +93,54 @@ def generate_audio(text: str, lecture_id: int, voice: str = "onyx") -> str:
         return filename
 
     except Exception as e:
-        raise Exception(f"Error generating audio: {str(e)}")
-
-
+        raise Exception(f"Error generating audio: {str(e)}")  
+     
+      
+def stream_lecture(topic: str, subject: str, difficulty: str = "intermediate"):
+    """
+    Streams a SHORT lecture for live mode.
+    Yields text chunks as they are generated.
+    """
+    prompt = f"""
+    You are an expert university lecturer in {subject}. 
+    Deliver a SHORT, focused lecture (about 300-400 words only).
+    
+    Topic: {topic}
+    Subject: {subject}
+    Difficulty Level: {difficulty}
+    
+    Structure:
+    1. Brief introduction (2-3 sentences)
+    2. Key concepts explained simply (main body)
+    3. One clear example
+    4. Brief conclusion (1-2 sentences)
+    
+    IMPORTANT RULES:
+    - Keep it SHORT. Maximum 400 words.
+    - Do NOT include section numbers or headers like "1. Introduction"
+    - Write in a natural speaking style, like you're talking to students
+    - Do NOT include a title
+    - Just start talking naturally
+    - Make sure it's specifically about {topic} in the context of {subject}
+    """
+    
+    try:
+        response = client.chat.completions.create(
+            model="gpt-5-nano",
+            messages=[
+                {"role": "system", "content": "You are an expert university lecturer giving a short, focused live lecture. Speak naturally without section headers or numbering."},
+                {"role": "user", "content": prompt}
+            ],
+            stream=True
+        )
+        
+        for chunk in response:
+            if chunk.choices[0].delta.content:
+                yield chunk.choices[0].delta.content
+                
+    except Exception as e:
+        raise Exception(f"Error streaming lecture: {str(e)}")
+    
 def stream_answer(lecture_content: str, question: str):
     """
     Streams an answer to a student question.

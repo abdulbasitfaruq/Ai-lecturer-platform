@@ -74,4 +74,15 @@ export const streamQuestion = (lectureContent, question, voice = 'onyx') => {
     })
 }
 
+export const saveLecture = (topic, subject, difficulty, content, userId, audioFile) => {
+    return API.post('/lectures/save', {
+        topic,
+        subject,
+        difficulty,
+        content,
+        user_id: userId,
+        audio_file: audioFile
+    })
+}
+
 
