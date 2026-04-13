@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { streamLecture, streamQuestion, saveLecture } from '../services/api'
+import { getAudioUrl, streamLecture, streamQuestion, saveLecture } from '../services/api'
 
 function LiveLecturePage() {
     const [searchParams] = useSearchParams()
@@ -11,24 +11,27 @@ function LiveLecturePage() {
     const difficulty = searchParams.get('difficulty') || 'intermediate'
     const voice = searchParams.get('voice') || 'onyx'
 
-    const [sentences, setSentences] = useState([])
-    const [currentSentenceIndex, setCurrentSentenceIndex] = useState(-1)
+    const [lectureText, setLectureText] = useState('')
     const [isStreaming, setIsStreaming] = useState(false)
     const [isFinished, setIsFinished] = useState(false)
+    const [audioFile, setAudioFile] = useState(null)
+    const [generatingAudio, setGeneratingAudio] = useState(false)
+    const [isPlaying, setIsPlaying] = useState(false)
+    const [currentWordIndex, setCurrentWordIndex] = useState(-1)
     const [question, setQuestion] = useState('')
     const [isAsking, setIsAsking] = useState(false)
-    const [answerSentences, setAnswerSentences] = useState([])
-    const [currentAnswerIndex, setCurrentAnswerIndex] = useState(-1)
+    const [answerText, setAnswerText] = useState('')
+    const [answerAudio, setAnswerAudio] = useState(null)
     const [qaPairs, setQaPairs] = useState([])
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState('')
 
-    const audioQueueRef = useRef([])
-    const isPlayingRef = useRef(false)
-    const currentAudioRef = useRef(null)
+    const audioRef = useRef(null)
     const fullContentRef = useRef('')
     const textContainerRef = useRef(null)
-    const shouldStopRef = useRef(false)
+    const hasStartedRef = useRef(false)
+    const highlightIntervalRef = useRef(null)
+    const pausedAtWordRef = useRef(0)
 
     const user = JSON.parse(localStorage.getItem('user'))
 
@@ -37,77 +40,16 @@ function LiveLecturePage() {
         if (textContainerRef.current) {
             textContainerRef.current.scrollTop = textContainerRef.current.scrollHeight
         }
-    }, [sentences, answerSentences])
+    }, [lectureText, answerText])
 
-    // Play next audio in queue
-    const playNextInQueue = () => {
-        if (shouldStopRef.current || audioQueueRef.current.length === 0) {
-            isPlayingRef.current = false
-            return
-        }
-
-        isPlayingRef.current = true
-        const { audio, index, isAnswer } = audioQueueRef.current.shift()
-
-        // Highlight current sentence
-        if (isAnswer) {
-            setCurrentAnswerIndex(index)
-        } else {
-            setCurrentSentenceIndex(index)
-        }
-
-        // Decode base64 audio and play
-        const audioBytes = atob(audio)
-        const arrayBuffer = new ArrayBuffer(audioBytes.length)
-        const view = new Uint8Array(arrayBuffer)
-        for (let i = 0; i < audioBytes.length; i++) {
-            view[i] = audioBytes.charCodeAt(i)
-        }
-        const blob = new Blob([arrayBuffer], { type: 'audio/mp3' })
-        const url = URL.createObjectURL(blob)
-
-        const audioElement = new Audio(url)
-        currentAudioRef.current = audioElement
-
-        audioElement.onended = () => {
-            currentAudioRef.current = null
-            URL.revokeObjectURL(url)
-            playNextInQueue()
-        }
-
-        audioElement.play().catch(() => {
-            playNextInQueue()
-        })
-    }
-
-    // Add audio to queue
-    const addToQueue = (audio, index, isAnswer = false) => {
-        audioQueueRef.current.push({ audio, index, isAnswer })
-        if (!isPlayingRef.current) {
-            playNextInQueue()
-        }
-    }
-
-    // Stop all audio
-    const stopAllAudio = () => {
-        shouldStopRef.current = true
-        audioQueueRef.current = []
-        if (currentAudioRef.current) {
-            currentAudioRef.current.pause()
-            currentAudioRef.current = null
-        }
-        isPlayingRef.current = false
-        setCurrentSentenceIndex(-1)
-        setCurrentAnswerIndex(-1)
-    }
-
-    // Start streaming lecture
+    // Start streaming ONLY ONCE
     const startStreaming = async () => {
+        if (hasStartedRef.current) return
+        hasStartedRef.current = true
+
         setIsStreaming(true)
-        setSentences([])
+        setLectureText('')
         fullContentRef.current = ''
-        shouldStopRef.current = false
-        let sentenceIndex = 0
 
         try {
             const response = await streamLecture(topic, subject, difficulty, voice)
@@ -126,22 +68,23 @@ function LiveLecturePage() {
                         try {
                             const data = JSON.parse(line.slice(6))
 
-                            if (data.type === 'chunk') {
-                                fullContentRef.current += data.text + ' '
-                                const idx = sentenceIndex
-                                setSentences(prev => [...prev, data.text])
-
-                                if (data.audio) {
-                                    addToQueue(data.audio, idx, false)
-                                }
-                                sentenceIndex++
+                            if (data.type === 'text') {
+                                setLectureText(prev => prev + data.content)
+                                fullContentRef.current += data.content
+                            } else if (data.type === 'audio') {
+                                setAudioFile(data.filename)
+                                setGeneratingAudio(false)
                             } else if (data.type === 'done') {
-                                setIsFinished(true)
                                 setIsStreaming(false)
+                                setGeneratingAudio(true)
                             }
                         } catch {}
                     }
                 }
+            }
+
+            if (!audioFile) {
+                setIsFinished(true)
             }
         } catch {
             setError('Failed to stream lecture')
@@ -155,21 +98,107 @@ function LiveLecturePage() {
         }
     }, [])
 
+    // When audio file arrives, mark as finished
+    useEffect(() => {
+        if (audioFile) {
+            setGeneratingAudio(false)
+            setIsFinished(true)
+        }
+    }, [audioFile])
+
+    // Play lecture audio with word highlighting
+    const playLectureAudio = () => {
+        if (!audioFile) return
+
+        const audio = new Audio(getAudioUrl(audioFile))
+        audioRef.current = audio
+
+        audio.onplay = () => {
+            setIsPlaying(true)
+            startHighlighting(pausedAtWordRef.current)
+        }
+
+        audio.onpause = () => {
+            setIsPlaying(false)
+            stopHighlighting()
+        }
+
+        audio.onended = () => {
+            setIsPlaying(false)
+            setCurrentWordIndex(-1)
+            stopHighlighting()
+            pausedAtWordRef.current = 0
+        }
+
+        audio.play().catch(() => {})
+    }
+
+    // Resume from where we paused
+    const resumeLectureAudio = () => {
+        if (audioRef.current) {
+            audioRef.current.play().catch(() => {})
+        } else {
+            playLectureAudio()
+        }
+    }
+
+    // Pause lecture audio
+    const pauseLectureAudio = () => {
+        if (audioRef.current) {
+            audioRef.current.pause()
+        }
+    }
+
+    // Word highlighting based on audio timing
+    const startHighlighting = (startWord) => {
+        const words = fullContentRef.current.split(/\s+/)
+        if (words.length === 0 || !audioRef.current) return
+
+        const totalDuration = audioRef.current.duration || 60
+        const msPerWord = (totalDuration * 1000) / words.length
+
+        let wordIndex = startWord
+
+        highlightIntervalRef.current = setInterval(() => {
+            if (wordIndex >= words.length) {
+                stopHighlighting()
+                return
+            }
+            setCurrentWordIndex(wordIndex)
+            pausedAtWordRef.current = wordIndex
+            wordIndex++
+
+            // Auto-scroll to highlighted word
+            if (textContainerRef.current) {
+                const highlighted = textContainerRef.current.querySelector('.word-highlight')
+                if (highlighted) {
+                    highlighted.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                }
+            }
+        }, msPerWord)
+    }
+
+    const stopHighlighting = () => {
+        if (highlightIntervalRef.current) {
+            clearInterval(highlightIntervalRef.current)
+            highlightIntervalRef.current = null
+        }
+    }
+
     // Ask question
     const handleAskQuestion = async () => {
         if (!question.trim()) return
 
-        stopAllAudio()
-        shouldStopRef.current = false
+        // Pause lecture audio
+        pauseLectureAudio()
 
         setIsAsking(true)
-        setAnswerSentences([])
-        setCurrentAnswerIndex(-1)
+        setAnswerText('')
+        setAnswerAudio(null)
 
         const currentQuestion = question
         setQuestion('')
 
-        let answerIndex = 0
         let fullAnswer = ''
 
         try {
@@ -189,22 +218,23 @@ function LiveLecturePage() {
                         try {
                             const data = JSON.parse(line.slice(6))
 
-                            if (data.type === 'chunk') {
-                                fullAnswer += data.text + ' '
-                                const idx = answerIndex
-                                setAnswerSentences(prev => [...prev, data.text])
-
-                                if (data.audio) {
-                                    addToQueue(data.audio, idx, true)
+                            if (data.type === 'text') {
+                                fullAnswer += data.content
+                                setAnswerText(prev => prev + data.content)
+                            } else if (data.type === 'audio') {
+                                setAnswerAudio(data.filename)
+                                // Play answer audio
+                                const ansAudio = new Audio(getAudioUrl(data.filename))
+                                ansAudio.play().catch(() => {})
+                                ansAudio.onended = () => {
+                                    // Answer audio done
                                 }
-                                answerIndex++
                             } else if (data.type === 'done') {
                                 setQaPairs(prev => [...prev, {
                                     question: currentQuestion,
-                                    answer: fullAnswer.trim()
+                                    answer: fullAnswer
                                 }])
-                                setAnswerSentences([])
-                                setCurrentAnswerIndex(-1)
+                                setAnswerText('')
                                 setIsAsking(false)
                             }
                         } catch {}
@@ -227,13 +257,32 @@ function LiveLecturePage() {
                 topic, subject, difficulty,
                 fullContentRef.current,
                 user.id,
-                null
+                audioFile
             )
             navigate(`/lecture/${response.data.lecture.id}`)
         } catch {
             setError('Failed to save lecture')
             setSaving(false)
         }
+    }
+
+    // Render words with highlighting
+    const renderWords = () => {
+        const words = lectureText.split(/\s+/)
+        return words.map((word, index) => (
+            <span
+                key={index}
+                className={`${
+                    index === currentWordIndex
+                        ? 'bg-emerald-200 text-emerald-900 font-medium word-highlight'
+                        : index < currentWordIndex
+                        ? 'text-gray-400'
+                        : 'text-gray-700'
+                } transition-colors duration-100`}
+            >
+                {word}{' '}
+            </span>
+        ))
     }
 
     return (
@@ -250,6 +299,9 @@ function LiveLecturePage() {
                             <span className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></span>
                             Live
                         </span>
+                    )}
+                    {generatingAudio && (
+                        <span className="text-sm text-emerald-200">Generating audio...</span>
                     )}
                     {isFinished && (
                         <button
@@ -276,28 +328,32 @@ function LiveLecturePage() {
                         ref={textContainerRef}
                         className="min-h-40 max-h-96 overflow-y-auto leading-relaxed text-base"
                     >
-                        {sentences.length === 0 && isStreaming && (
+                        {!lectureText && isStreaming && (
                             <span className="text-gray-400">Generating lecture...</span>
                         )}
-                        {sentences.map((sentence, index) => (
-                            <span
-                                key={index}
-                                className={`${
-                                    index === currentSentenceIndex
-                                        ? 'bg-emerald-100 text-emerald-900 font-medium'
-                                        : index < currentSentenceIndex
-                                        ? 'text-gray-500'
-                                        : 'text-gray-700'
-                                } transition-colors duration-200`}
-                            >
-                                {sentence}{' '}
-                            </span>
-                        ))}
+                        {currentWordIndex >= 0 ? renderWords() : (
+                            <span className="text-gray-700 whitespace-pre-line">{lectureText}</span>
+                        )}
                         {isStreaming && (
                             <span className="inline-block w-2 h-5 bg-emerald-700 animate-pulse ml-1"></span>
                         )}
                     </div>
                 </div>
+
+                {/* Audio Player */}
+                {audioFile && (
+                    <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-4 flex items-center gap-4">
+                        <button
+                            onClick={isPlaying ? pauseLectureAudio : resumeLectureAudio}
+                            className="w-10 h-10 bg-emerald-700 text-white rounded-full flex items-center justify-center hover:bg-emerald-800 flex-shrink-0"
+                        >
+                            {isPlaying ? '⏸' : '▶'}
+                        </button>
+                        <p className="text-sm text-gray-500">
+                            {isPlaying ? 'Playing lecture...' : 'Click play to hear the lecture'}
+                        </p>
+                    </div>
+                )}
 
                 {/* Ask Question */}
                 {(isStreaming || isFinished) && !isAsking && (
@@ -319,28 +375,32 @@ function LiveLecturePage() {
                                 Ask
                             </button>
                         </div>
+                        {isPlaying && (
+                            <p className="text-xs text-gray-400 mt-2">Asking will pause the lecture audio</p>
+                        )}
                     </div>
                 )}
 
                 {/* Currently streaming answer */}
-                {isAsking && answerSentences.length > 0 && (
+                {isAsking && (
                     <div className="bg-emerald-50 rounded-2xl border border-emerald-200 p-4 mb-4">
                         <p className="text-sm font-semibold text-gray-900 mb-2">Answering...</p>
-                        <div className="text-sm leading-relaxed">
-                            {answerSentences.map((sentence, index) => (
-                                <span
-                                    key={index}
-                                    className={`${
-                                        index === currentAnswerIndex
-                                            ? 'bg-emerald-200 text-emerald-900 font-medium'
-                                            : 'text-gray-700'
-                                    } transition-colors duration-200`}
-                                >
-                                    {sentence}{' '}
-                                </span>
-                            ))}
+                        <p className="text-sm text-gray-700 leading-relaxed">
+                            {answerText}
                             <span className="inline-block w-2 h-4 bg-emerald-700 animate-pulse ml-1"></span>
-                        </div>
+                        </p>
+                    </div>
+                )}
+
+                {/* Continue lecture button after Q&A */}
+                {!isAsking && qaPairs.length > 0 && audioFile && !isPlaying && (
+                    <div className="mb-4">
+                        <button
+                            onClick={resumeLectureAudio}
+                            className="bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-800"
+                        >
+                            ▶ Continue lecture
+                        </button>
                     </div>
                 )}
 
