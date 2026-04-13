@@ -113,6 +113,11 @@ function LiveLecturePage() {
         const audio = new Audio(getAudioUrl(audioFile))
         audioRef.current = audio
 
+        // Wait for audio to load its duration before playing
+        audio.onloadedmetadata = () => {
+            audio.play().catch(() => {})
+        }
+
         audio.onplay = () => {
             setIsPlaying(true)
             startHighlighting(pausedAtWordRef.current)
@@ -129,8 +134,6 @@ function LiveLecturePage() {
             stopHighlighting()
             pausedAtWordRef.current = 0
         }
-
-        audio.play().catch(() => {})
     }
 
     // Resume from where we paused
