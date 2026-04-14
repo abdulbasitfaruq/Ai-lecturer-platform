@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { getAudioUrl, streamLecture, streamQuestion, saveLecture } from '../services/api'
+import LecturerAvatar from '../components/LecturerAvatar'
+import { getLecturer } from '../data/lecturers'
 
 function LiveLecturePage() {
     const [searchParams] = useSearchParams()
@@ -34,6 +36,7 @@ function LiveLecturePage() {
     const pausedAtWordRef = useRef(0)
 
     const user = JSON.parse(localStorage.getItem('user'))
+    const lecturer = getLecturer(subject)
 
     // Auto-scroll
     useEffect(() => {
@@ -325,6 +328,24 @@ function LiveLecturePage() {
                     </div>
                 )}
 
+                {/* Lecturer Avatar + Audio */}
+                <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-4">
+                    <div className="flex items-center justify-between">
+                        <LecturerAvatar lecturer={lecturer} isSpeaking={isPlaying} />
+                        {audioFile && (
+                            <button
+                                onClick={isPlaying ? pauseLectureAudio : resumeLectureAudio}
+                                className="w-12 h-12 bg-emerald-700 text-white rounded-full flex items-center justify-center hover:bg-emerald-800 flex-shrink-0 text-lg"
+                            >
+                                {isPlaying ? '⏸' : '▶'}
+                            </button>
+                        )}
+                        {generatingAudio && (
+                            <span className="text-xs text-gray-400">Generating audio...</span>
+                        )}
+                    </div>
+                </div>
+
                 {/* Teleprompter Box */}
                 <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-4">
                     <div
@@ -342,21 +363,6 @@ function LiveLecturePage() {
                         )}
                     </div>
                 </div>
-
-                {/* Audio Player */}
-                {audioFile && (
-                    <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-4 flex items-center gap-4">
-                        <button
-                            onClick={isPlaying ? pauseLectureAudio : resumeLectureAudio}
-                            className="w-10 h-10 bg-emerald-700 text-white rounded-full flex items-center justify-center hover:bg-emerald-800 flex-shrink-0"
-                        >
-                            {isPlaying ? '⏸' : '▶'}
-                        </button>
-                        <p className="text-sm text-gray-500">
-                            {isPlaying ? 'Playing lecture...' : 'Click play to hear the lecture'}
-                        </p>
-                    </div>
-                )}
 
                 {/* Ask Question */}
                 {(isStreaming || isFinished) && !isAsking && (

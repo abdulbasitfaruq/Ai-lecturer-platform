@@ -1,16 +1,19 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { getLecturer } from '../data/lecturers'
+import LecturerAvatar from '../components/LecturerAvatar'
 
 function GeneratePage() {
     const navigate = useNavigate()
     const [topic, setTopic] = useState('')
     const [subject, setSubject] = useState('')
     const [difficulty, setDifficulty] = useState('intermediate')
-    const [voice, setVoice] = useState('onyx')
+
+    const lecturer = getLecturer(subject)
 
     const handleGenerate = (e) => {
         e.preventDefault()
-        navigate(`/live?topic=${encodeURIComponent(topic)}&subject=${encodeURIComponent(subject)}&difficulty=${difficulty}&voice=${voice}`)
+        navigate(`/live?topic=${encodeURIComponent(topic)}&subject=${encodeURIComponent(subject)}&difficulty=${difficulty}&voice=${lecturer.voice}`)
     }
 
     return (
@@ -59,21 +62,14 @@ function GeneratePage() {
                         </select>
                     </div>
 
-                    <div className="mb-6">
-                        <label className="block text-sm text-gray-500 mb-1">AI Voice</label>
-                        <select
-                            value={voice}
-                            onChange={(e) => setVoice(e.target.value)}
-                            className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-700 bg-white"
-                        >
-                            <option value="onyx">Onyx — deep, authoritative</option>
-                            <option value="nova">Nova — friendly, energetic</option>
-                            <option value="echo">Echo — warm, smooth</option>
-                            <option value="alloy">Alloy — neutral, balanced</option>
-                            <option value="fable">Fable — British, storytelling</option>
-                            <option value="shimmer">Shimmer — soft, gentle</option>
-                        </select>
-                    </div>
+                    {/* Lecturer Preview */}
+                    {subject && (
+                        <div className="bg-gray-50 rounded-xl p-4 mb-6">
+                            <p className="text-xs text-gray-500 mb-2">Your lecturer</p>
+                            <LecturerAvatar lecturer={lecturer} isSpeaking={false} />
+                            <p className="text-xs text-gray-400 mt-1">{lecturer.bio}</p>
+                        </div>
+                    )}
 
                     <button
                         onClick={handleGenerate}
