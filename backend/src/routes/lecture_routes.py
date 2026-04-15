@@ -67,27 +67,13 @@ def lecture_history(user_id: int, db: Session = Depends(get_db)):
 
 @router.post("/stream")
 def stream_lecture_endpoint(request: StreamRequest):
-     def generate():
-      full_content = ""
+    def generate():
+        full_content = ""
 
-     # ✅ LOAD MOCK FILE
-     with open("Test_lecture.json", "r") as file:
-        data = json.load(file)
-
-     lecture = data["content"]
-     words = lecture.split()
-
-     # ✅ FAKE STREAMING
-     for word in words:
-        chunk = word + " "
-        full_content += chunk
-
-        data_json = json.dumps({"type": "text", "content": chunk})
-        yield f"data: {data_json}\n\n"
-
-        import time
-        time.sleep(0.05)  # simulate real streaming
-
+        for chunk in stream_lecture(request.topic, request.subject, request.difficulty):
+            full_content += chunk
+            data = json.dumps({"type": "text", "content": chunk})
+            yield f"data: {data}\n\n"
 
         # Text done — generate ONE audio file
         try:
@@ -101,7 +87,7 @@ def stream_lecture_endpoint(request: StreamRequest):
         done_data = json.dumps({"type": "done", "full_content": full_content})
         yield f"data: {done_data}\n\n"
 
-     return StreamingResponse(generate(), media_type="text/event-stream")
+    return StreamingResponse(generate(), media_type="text/event-stream")
 
 @router.post("/stream/question")
 def stream_question_endpoint(request: StreamQuestionRequest):

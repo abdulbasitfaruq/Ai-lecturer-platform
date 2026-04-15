@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getLecturer } from '../data/lecturers'
+import { getLecturer } from '../Data/lecturers'
 import LecturerAvatar from '../components/LecturerAvatar'
 
 function GeneratePage() {
