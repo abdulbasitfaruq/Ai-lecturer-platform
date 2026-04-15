@@ -1,9 +1,9 @@
 import sarahChen from '../assets/lecturers/sarah_chen.png'
-import jamesObi from '../assets/lecturers/james_obi.png'
-import mariaSantos from '../assets/lecturers/maria_santos.png'
-import aishaPatel from '../assets/lecturers/aisha_patel.png'
-import davidKim from '../assets/lecturers/david_kim.png'
-import alexMorgan from '../assets/lecturers/alex_morgan.png'
+import jamesObi from '../assets/lecturers/james_obi.jpeg'
+import mariaSantos from '../assets/lecturers/maria_santos.jpeg'
+import aishaPatel from '../assets/lecturers/aisha_patel.jpeg'
+import davidKim from '../assets/lecturers/david_kim.jpeg'
+import alexMorgan from '../assets/lecturers/alex_morgan.jpeg'
 
 const lecturers = {
     "Computer Science": {
