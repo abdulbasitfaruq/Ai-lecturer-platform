@@ -331,7 +331,7 @@ function LiveLecturePage() {
                 {/* Lecturer Avatar + Audio */}
                 <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-4">
                     <div className="flex items-center justify-between">
-                        <LecturerAvatar lecturer={lecturer} isSpeaking={isPlaying} />
+                        <LecturerAvatar lecturer={lecturer} isSpeaking={isPlaying} large={true} />
                         {audioFile && (
                             <button
                                 onClick={isPlaying ? pauseLectureAudio : resumeLectureAudio}
