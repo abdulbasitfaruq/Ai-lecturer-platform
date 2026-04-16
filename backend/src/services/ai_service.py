@@ -233,7 +233,7 @@ def generate_visual(topic: str, subject: str, lecture_content: str) -> str:
         """
 
         response = gemini_client.models.generate_content(
-            model="gemini-2.0-flash-preview-image-generation",
+            model="gemini-3.1-flash-image-preview",
             contents=prompt,
             config={
                 "response_modalities": ["TEXT", "IMAGE"]

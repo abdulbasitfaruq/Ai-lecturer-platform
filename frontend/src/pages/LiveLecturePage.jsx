@@ -61,7 +61,7 @@ function LiveLecturePage() {
         fullContentRef.current = ''
 
         try {
-            const response = await streamLecture(topic, subject, difficulty, voice)
+            const response = await streamLecture(topic, subject, difficulty, voice,)
             const reader = response.body.getReader()
             const decoder = new TextDecoder()
 
