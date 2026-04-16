@@ -27,6 +27,8 @@ function LiveLecturePage() {
     const [qaPairs, setQaPairs] = useState([])
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState('')
+    const [currentAnswerWordIndex, setCurrentAnswerWordIndex] = useState(-1)
+    const [isAnswerPlaying, setIsAnswerPlaying] = useState(false)
 
     const audioRef = useRef(null)
     const fullContentRef = useRef('')
@@ -34,9 +36,14 @@ function LiveLecturePage() {
     const hasStartedRef = useRef(false)
     const highlightIntervalRef = useRef(null)
     const pausedAtWordRef = useRef(0)
+    const answerAudioRef = useRef(null)
+    const answerHighlightIntervalRef = useRef(null)
+    const fullAnswerRef = useRef('')
 
     const user = JSON.parse(localStorage.getItem('user'))
     const lecturer = getLecturer(subject)
+
+    
 
     // Auto-scroll
     useEffect(() => {
@@ -191,6 +198,25 @@ function LiveLecturePage() {
         }
     }
 
+    const startAnswerHighlighting = () => {
+        const words = fullAnswerRef.current.split(/\s+/)
+        if (words.length === 0 || !answerAudioRef.current) return
+
+        const totalDuration = answerAudioRef.current.duration || 30
+        const msPerWord = (totalDuration * 1000) / words.length
+
+        let wordIndex = 0
+
+        answerHighlightIntervalRef.current = setInterval(() => {
+            if (wordIndex >= words.length) {
+                clearInterval(answerHighlightIntervalRef.current)
+                return
+            }
+            setCurrentAnswerWordIndex(wordIndex)
+            wordIndex++
+        }, msPerWord)
+    }
+
     // Ask question
     const handleAskQuestion = async () => {
         if (!question.trim()) return
@@ -229,21 +255,29 @@ function LiveLecturePage() {
                                 setAnswerText(prev => prev + data.content)
                             } else if (data.type === 'audio') {
                                 setAnswerAudio(data.filename)
-                                // Play answer audio
+                                fullAnswerRef.current = fullAnswer
+
                                 const ansAudio = new Audio(getAudioUrl(data.filename))
-                                ansAudio.play().catch(() => {})
-                                ansAudio.onended = () => {
-                                    // Answer audio done
+                                answerAudioRef.current = ansAudio
+
+                                ansAudio.onloadedmetadata = () => {
+                                    ansAudio.play().catch(() => {})
                                 }
-                            } else if (data.type === 'done') {
-                                setQaPairs(prev => [...prev, {
-                                    question: currentQuestion,
-                                    answer: fullAnswer
-                                }])
-                                setAnswerText('')
-                                setIsAsking(false)
-                            }
-                        } catch {}
+
+                                ansAudio.onplay = () => {
+                                    setIsAnswerPlaying(true)
+                                    startAnswerHighlighting()
+                                }
+
+                                ansAudio.onended = () => {
+                                    setIsAnswerPlaying(false)
+                                    setCurrentAnswerWordIndex(-1)
+                                    if (answerHighlightIntervalRef.current) {
+                                        clearInterval(answerHighlightIntervalRef.current)
+                                    }
+                                }
+                            } catch {}
+                        }
                     }
                 }
             }
@@ -414,20 +448,39 @@ function LiveLecturePage() {
                 )}
 
                 {/* Q&A Comment Section */}
-                {qaPairs.length > 0 && (
-                    <div className="bg-white rounded-2xl border border-gray-200 p-6">
-                        <h3 className="text-sm font-bold text-gray-900 mb-4">Questions & Answers</h3>
-                        {qaPairs.map((qa, index) => (
-                            <div key={index} className="py-4 border-b border-gray-100 last:border-0">
-                                <div className="flex items-start gap-2 mb-2">
-                                    <span className="text-xs bg-emerald-700 text-white w-5 h-5 rounded flex items-center justify-center font-bold flex-shrink-0 mt-0.5">Q</span>
-                                    <p className="text-sm font-semibold text-gray-900">{qa.question}</p>
-                                </div>
-                                <p className="text-sm text-gray-600 leading-relaxed pl-7">{qa.answer}</p>
-                            </div>
-                        ))}
-                    </div>
-                )}
+                {qaPairs.map((qa, index) => {
+                  const isLatest = index === qaPairs.length - 1
+                  const words = qa.answer.split(/\s+/)
+
+                 return (
+                     <div key={index} className="py-4 border-b border-gray-100 last:border-0">
+                        <div className="flex items-start gap-2 mb-2">
+                          <span className="text-xs bg-emerald-700 text-white w-5 h-5 rounded flex items-center justify-center font-bold flex-shrink-0 mt-0.5">Q</span>
+                          <p className="text-sm font-semibold text-gray-900">{qa.question}</p>
+                       </div>
+                       <p className="text-sm leading-relaxed pl-7">
+                            {isLatest && isAnswerPlaying ? (
+                               words.map((word, wIdx) => (
+                                     <span
+                                         key={wIdx}
+                                         className={
+                                             wIdx === currentAnswerWordIndex
+                                             ? 'bg-emerald-200 text-emerald-900 font-medium'
+                                             : wIdx < currentAnswerWordIndex
+                                             ? 'text-gray-400'
+                                             : 'text-gray-600'
+                                            }
+                                         >
+                                         {word}{' '}
+                                        </span>
+                                    ))
+                                ) : (
+                                    <span className="text-gray-600">{qa.answer}</span>
+                            )}
+                        </p>
+                        </div>
+                    )
+              })}
             </div>
         </div>
     )
