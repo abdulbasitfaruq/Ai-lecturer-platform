@@ -5,6 +5,7 @@ from src.config.database import get_db
 from pydantic import BaseModel
 from src.controller.lecture_controller import create_lecture, create_guest_lecture, get_lectures_by_user
 from src.services.ai_service import stream_lecture, stream_answer, generate_audio_chunk
+from src.services.ai_service import stream_lecture, stream_answer, generate_audio_chunk, generate_visual
 import json
 import uuid
 
@@ -40,6 +41,7 @@ class SaveLectureRequest(BaseModel):
     content: str
     user_id: int
     audio_file: str = None
+    visual_url: str = None
 
 @router.post("/generate")
 def generate_user_lecture(lecture: UserLectureRequest, db: Session = Depends(get_db)):
@@ -75,6 +77,15 @@ def stream_lecture_endpoint(request: StreamRequest):
             full_content += chunk
             data = json.dumps({"type": "text", "content": chunk})
             yield f"data: {data}\n\n"
+            
+        # Generate visual in background
+        try:
+            visual_file = generate_visual(request.topic, request.subject, full_content)
+            if visual_file:
+                visual_data = json.dumps({"type": "visual", "filename": visual_file})
+                yield f"data: {visual_data}\n\n"
+        except Exception as e:
+            print(f"Visual generation failed: {str(e)}")
 
         # 2. Text is finished — Generate audio WITH timestamps
         try:
@@ -149,7 +160,8 @@ def save_lecture(request: SaveLectureRequest, db: Session = Depends(get_db)):
         content=request.content,
         summary=summary,
         difficulty=request.difficulty,
-        audio_file=request.audio_file
+        audio_file=request.audio_file,
+        visual_url=request.visual_url
     )
 
     db.add(new_lecture)

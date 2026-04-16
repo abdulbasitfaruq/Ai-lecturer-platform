@@ -21,7 +21,8 @@ function LiveLecturePage() {
     const [generatingAudio, setGeneratingAudio] = useState(false)
     const [isPlaying, setIsPlaying] = useState(false)
     const [currentWordIndex, setCurrentWordIndex] = useState(-1)
-    
+    const [visualFile, setVisualFile] = useState(null)
+
     // Q&A State
     const [question, setQuestion] = useState('')
     const [isAsking, setIsAsking] = useState(false)
@@ -29,11 +30,11 @@ function LiveLecturePage() {
     const [currentAnswerWordIndex, setCurrentAnswerWordIndex] = useState(-1)
     const [isAnswerPlaying, setIsAnswerPlaying] = useState(false)
     const [qaPairs, setQaPairs] = useState([])
-    
+
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState('')
 
-    // Refs for audio and streaming
+    // Refs
     const audioRef = useRef(null)
     const answerAudioRef = useRef(null)
     const fullContentRef = useRef('')
@@ -43,14 +44,14 @@ function LiveLecturePage() {
     const user = JSON.parse(localStorage.getItem('user'))
     const lecturer = getLecturer(subject)
 
-    // Auto-scroll logic
+    // Auto-scroll
     useEffect(() => {
         if (textContainerRef.current) {
             textContainerRef.current.scrollTop = textContainerRef.current.scrollHeight
         }
     }, [lectureText, answerText])
 
-    // Start streaming ONLY ONCE on load
+    // Start streaming ONLY ONCE
     const startStreaming = async () => {
         if (hasStartedRef.current) return
         hasStartedRef.current = true
@@ -78,8 +79,9 @@ function LiveLecturePage() {
                             if (data.type === 'text') {
                                 setLectureText(prev => prev + data.content)
                                 fullContentRef.current += data.content
+                            } else if (data.type === 'visual') {
+                                setVisualFile(data.filename)
                             } else if (data.type === 'audio') {
-                                // FIX: data is an object, we need the filename string
                                 setAudioFile(data.filename)
                                 setGeneratingAudio(false)
                             } else if (data.type === 'done') {
@@ -107,40 +109,41 @@ function LiveLecturePage() {
         }
     }, [audioFile])
 
-    // Play main lecture audio with sync
+    // Play lecture audio with sync
     const playLectureAudio = () => {
-        if (!audioFile || !lectureText) return;
+        if (!audioFile || !lectureText) return
 
-        const audio = new Audio(getAudioUrl(audioFile));
-        audioRef.current = audio;
+        const audio = new Audio(getAudioUrl(audioFile))
+        audioRef.current = audio
 
         audio.onloadedmetadata = () => {
-            const totalDuration = audio.duration;
-            const words = lectureText.split(/\s+/);
-            
+            const totalDuration = audio.duration
+            const words = lectureText.split(/\s+/)
+
             const estimatedTimestamps = words.map((word, i) => {
-                const start = (i / words.length) * totalDuration;
-                const end = ((i + 1) / words.length) * totalDuration;
-                return { word, start, end };
-            });
+                const start = (i / words.length) * totalDuration
+                const end = ((i + 1) / words.length) * totalDuration
+                return { word, start, end }
+            })
 
             audio.ontimeupdate = () => {
                 const index = estimatedTimestamps.findIndex(
                     w => audio.currentTime >= w.start && audio.currentTime <= w.end
-                );
-                if (index !== -1) setCurrentWordIndex(index);
-            };
-        };
+                )
+                if (index !== -1) setCurrentWordIndex(index)
+            }
+        }
 
-        audio.onplay = () => setIsPlaying(true);
-        audio.onpause = () => setIsPlaying(false);
+        audio.onplay = () => setIsPlaying(true)
+        audio.onpause = () => setIsPlaying(false)
         audio.onended = () => {
-            setIsPlaying(false);
-            setCurrentWordIndex(-1);
-        };
-        audio.play().catch(console.error);
-    };
+            setIsPlaying(false)
+            setCurrentWordIndex(-1)
+        }
+        audio.play().catch(console.error)
+    }
 
+    // Ask question
     const handleAskQuestion = async () => {
         if (!question.trim()) return
         if (audioRef.current) audioRef.current.pause()
@@ -171,33 +174,32 @@ function LiveLecturePage() {
                                 fullAnswer += data.content
                                 setAnswerText(prev => prev + data.content)
                             } else if (data.type === 'audio') {
-                                // FIX: Extract filename from data object
-                                const filename = data.filename;
+                                const filename = data.filename
                                 const ansAudio = new Audio(getAudioUrl(filename))
                                 answerAudioRef.current = ansAudio
 
                                 ansAudio.onloadedmetadata = () => {
-                                    const totalDuration = ansAudio.duration;
-                                    const words = fullAnswer.split(/\s+/);
+                                    const totalDuration = ansAudio.duration
+                                    const words = fullAnswer.split(/\s+/)
                                     const timestamps = words.map((word, i) => ({
                                         start: (i / words.length) * totalDuration,
                                         end: ((i + 1) / words.length) * totalDuration
-                                    }));
+                                    }))
 
                                     ansAudio.ontimeupdate = () => {
-                                        const idx = timestamps.findIndex(t => ansAudio.currentTime >= t.start && ansAudio.currentTime <= t.end);
-                                        if (idx !== -1) setCurrentAnswerWordIndex(idx);
-                                    };
-                                    ansAudio.play();
-                                };
+                                        const idx = timestamps.findIndex(t => ansAudio.currentTime >= t.start && ansAudio.currentTime <= t.end)
+                                        if (idx !== -1) setCurrentAnswerWordIndex(idx)
+                                    }
+                                    ansAudio.play()
+                                }
 
-                                ansAudio.onplay = () => setIsAnswerPlaying(true);
+                                ansAudio.onplay = () => setIsAnswerPlaying(true)
                                 ansAudio.onended = () => {
-                                    setIsAnswerPlaying(false);
-                                    setCurrentAnswerWordIndex(-1);
-                                    setQaPairs(prev => [...prev, { question: currentQuestion, answer: fullAnswer }]);
-                                    setIsAsking(false);
-                                };
+                                    setIsAnswerPlaying(false)
+                                    setCurrentAnswerWordIndex(-1)
+                                    setQaPairs(prev => [...prev, { question: currentQuestion, answer: fullAnswer }])
+                                    setIsAsking(false)
+                                }
                             }
                         } catch (e) {}
                     }
@@ -209,11 +211,12 @@ function LiveLecturePage() {
         }
     }
 
+    // Save lecture with visual
     const handleSave = async () => {
         if (!user) return
         setSaving(true)
         try {
-            const response = await saveLecture(topic, subject, difficulty, fullContentRef.current, user.id, audioFile)
+            const response = await saveLecture(topic, subject, difficulty, fullContentRef.current, user.id, audioFile, visualFile)
             navigate(`/lecture/${response.data.lecture.id}`)
         } catch (err) {
             setError('Failed to save lecture')
@@ -248,7 +251,7 @@ function LiveLecturePage() {
                 </div>
             </div>
 
-            <div className="max-w-3xl mx-auto py-6 px-4">
+            <div className="max-w-5xl mx-auto py-6 px-4">
                 {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4">{error}</div>}
 
                 {/* Lecturer Box */}
@@ -261,16 +264,34 @@ function LiveLecturePage() {
                     )}
                 </div>
 
-                {/* Main Text Content */}
-                <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-4 min-h-[200px] max-h-[400px] overflow-y-auto" ref={textContainerRef}>
-                    {!lectureText && isStreaming ? <p className="text-gray-400">Dr. Patel is starting the lecture...</p> : null}
-                    {currentWordIndex >= 0 ? renderWords(lectureText, currentWordIndex) : <p className="text-gray-700 whitespace-pre-line">{lectureText}</p>}
+                {/* Split Layout: Text + Visuals */}
+                <div className="flex gap-4 mb-4">
+                    {/* Left: Text (60-70%) */}
+                    <div className={`bg-white rounded-2xl border border-gray-200 p-6 min-h-[250px] max-h-[400px] overflow-y-auto ${visualFile ? 'w-2/3' : 'w-full'}`} ref={textContainerRef}>
+                        {!lectureText && isStreaming ? <p className="text-gray-400">{lecturer.name} is starting the lecture...</p> : null}
+                        {currentWordIndex >= 0 ? renderWords(lectureText, currentWordIndex) : <p className="text-gray-700 whitespace-pre-line">{lectureText}</p>}
+                    </div>
+
+                    {/* Right: Visual Panel (30-40%) */}
+                    {visualFile ? (
+                        <div className="w-1/3 bg-white rounded-2xl border border-gray-200 p-3 flex items-center justify-center">
+                            <img src={getAudioUrl(visualFile)} alt="Lecture visual" className="w-full rounded-lg" />
+                        </div>
+                    ) : (isStreaming || generatingAudio) ? (
+                        <div className="w-1/3 bg-gray-900 rounded-2xl p-4 flex items-center justify-center min-h-[250px]">
+                            <div className="text-center">
+                                <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                                <p className="text-emerald-400 text-xs">Generating visual...</p>
+                                <p className="text-gray-500 text-xs mt-1">AI is drawing a diagram</p>
+                            </div>
+                        </div>
+                    ) : null}
                 </div>
 
                 {/* Q&A Input */}
                 {!isAsking && (
                     <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-4 flex gap-2">
-                        <input type="text" value={question} onChange={e => setQuestion(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAskQuestion()} className="flex-1 border-none focus:ring-0 text-sm" placeholder="Ask Dr. Patel a question..." />
+                        <input type="text" value={question} onChange={e => setQuestion(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAskQuestion()} className="flex-1 border-none focus:ring-0 text-sm" placeholder={`Ask ${lecturer.name} a question...`} />
                         <button onClick={handleAskQuestion} disabled={!question.trim()} className="bg-emerald-700 text-white px-5 py-2 rounded-lg text-sm font-semibold disabled:bg-gray-300">Ask</button>
                     </div>
                 )}
@@ -278,7 +299,7 @@ function LiveLecturePage() {
                 {/* Answer Box */}
                 {isAsking && (
                     <div className="bg-emerald-50 rounded-2xl border border-emerald-200 p-6 mb-4">
-                        <p className="text-sm font-bold text-emerald-900 mb-2">Dr. Patel's Answer:</p>
+                        <p className="text-sm font-bold text-emerald-900 mb-2">{lecturer.name}'s Answer:</p>
                         <div className="text-gray-800 text-base leading-relaxed">
                             {currentAnswerWordIndex >= 0 ? renderWords(answerText, currentAnswerWordIndex) : answerText}
                         </div>

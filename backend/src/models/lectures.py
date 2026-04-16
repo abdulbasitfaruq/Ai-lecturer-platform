@@ -13,6 +13,7 @@ class Lecture(Base):
     difficulty = Column(String, nullable=True)
     audio_file = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    visual_url = Column(String, nullable=True)
     
     
     def __repr__(self):

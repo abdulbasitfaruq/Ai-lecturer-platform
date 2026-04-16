@@ -1,6 +1,8 @@
 from openai import OpenAI
 import os
 from dotenv import load_dotenv
+from google import genai
+import uuid
 
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -193,5 +195,62 @@ def generate_audio(text: str, lecture_id: int, voice: str = "onyx") -> str:
         return filename
     except Exception as e:
         raise Exception(f"Error generating audio: {str(e)}")
+    
+    
+# Visuls sectiion
+
+def generate_visual(topic: str, subject: str, lecture_content: str) -> str:
+    try:
+        gemini_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+
+        # Subject-specific visual prompts
+        visual_styles = {
+            "Computer Science": "Clean flowchart or data structure diagram",
+            "Physics": "Scientific diagram with labeled forces, vectors, or circuits",
+            "Mathematics": "Graph, equation visualization, or geometric proof diagram",
+            "Biology": "Anatomical diagram or biological process illustration",
+            "Chemistry": "Molecular structure, reaction pathway, or lab setup diagram",
+            "Pharmacology": "Drug-receptor binding diagram or metabolic pathway",
+            "History": "Annotated timeline or historical map",
+            "default": "Clean educational infographic or concept map"
+        }
+
+        style = visual_styles.get(subject, visual_styles["default"])
+
+        prompt = f"""
+        Create a {style} for a university lecture about "{topic}" in {subject}.
+        
+        Lecture summary: {lecture_content[:500]}
+        
+        Style rules:
+        - Clean, professional university textbook style
+        - White background
+        - Use emerald green (#2D6A4F) as accent color
+        - Clear labels and annotations in English
+        - No decorative elements, only educational content
+        - No long paragraphs of text inside the image
+        - Focus on diagrams, structures, and visual relationships
+        - High quality, suitable for a university presentation
+        """
+
+        response = gemini_client.models.generate_image(
+            model="gemini-2.0-flash-preview-image-generation",
+            prompt=prompt
+        )
+
+        filename = f"visual_{topic.replace(' ', '_').lower()[:30]}_{str(uuid.uuid4())[:6]}.png"
+        filepath = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "audio", filename)
+
+        if response.generated_images and len(response.generated_images) > 0:
+            image_bytes = response.generated_images[0].image.image_bytes
+            with open(filepath, "wb") as f:
+                f.write(image_bytes)
+            return filename
+
+        return None
+
+    except Exception as e:
+        print(f"Visual generation failed: {str(e)}")
+        return None
 
     
