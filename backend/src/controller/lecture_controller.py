@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from src.models.lectures import Lecture
-from src.services.ai_service import generate_lecture ,generate_audio
+from src.services.ai_service import generate_lecture ,generate_audio, generate_visual
 from fastapi import HTTPException
 
 def create_lecture(db: Session, user_id: int, topic: str, subject: str, difficulty: str, voice: str = "onyx"):
@@ -91,7 +91,8 @@ def get_lectures_by_user(db: Session, user_id: int):
                 "difficulty": lecture.difficulty,
                 "created_at": lecture.created_at,
                 "subject": lecture.subject,
-                "audio_file": lecture.audio_file
+                "audio_file": lecture.audio_file,
+                "visual_url": lecture.visual_url
             }
             for lecture in lectures
         ]

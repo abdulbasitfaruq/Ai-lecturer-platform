@@ -203,7 +203,6 @@ def generate_visual(topic: str, subject: str, lecture_content: str) -> str:
     try:
         gemini_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
-        # Subject-specific visual prompts
         visual_styles = {
             "Computer Science": "Clean flowchart or data structure diagram",
             "Physics": "Scientific diagram with labeled forces, vectors, or circuits",
@@ -233,24 +232,28 @@ def generate_visual(topic: str, subject: str, lecture_content: str) -> str:
         - High quality, suitable for a university presentation
         """
 
-        response = gemini_client.models.generate_image(
+        response = gemini_client.models.generate_content(
             model="gemini-2.0-flash-preview-image-generation",
-            prompt=prompt
+            contents=prompt,
+            config={
+                "response_modalities": ["TEXT", "IMAGE"]
+            }
         )
 
         filename = f"visual_{topic.replace(' ', '_').lower()[:30]}_{str(uuid.uuid4())[:6]}.png"
         filepath = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "audio", filename)
 
-        if response.generated_images and len(response.generated_images) > 0:
-            image_bytes = response.generated_images[0].image.image_bytes
-            with open(filepath, "wb") as f:
-                f.write(image_bytes)
-            return filename
+        if response.candidates and response.candidates[0].content.parts:
+            for part in response.candidates[0].content.parts:
+                if part.inline_data:
+                    image_bytes = part.inline_data.data
+                    with open(filepath, "wb") as f:
+                        f.write(image_bytes)
+                    return filename
 
         return None
 
     except Exception as e:
         print(f"Visual generation failed: {str(e)}")
         return None
-
     

@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 from src.config.database import get_db
 from pydantic import BaseModel
 from src.controller.lecture_controller import create_lecture, create_guest_lecture, get_lectures_by_user
-from src.services.ai_service import stream_lecture, stream_answer, generate_audio_chunk
 from src.services.ai_service import stream_lecture, stream_answer, generate_audio_chunk, generate_visual
 import json
 import uuid
