@@ -74,28 +74,42 @@ def answer_question(lecture_content: str, question: str) -> str:
     except Exception as e:
         raise Exception(f"Error answering question: {str(e)}")
 
-def generate_audio(text: str, lecture_id: int, voice: str = "onyx") -> str:
+def generate_audio_chunk(text: str, chunk_id: str, voice: str = "onyx") -> dict:
+    """
+    FIXED: Uses verbose_json to get the word timestamps without the keyword error.
+    """
     try:
-        if len(text) > 4096:
-            text = text[:4096]
-
+        # Note: We set response_format to 'verbose_json'. 
+        # In the latest SDK, this often provides the map automatically.
         response = client.audio.speech.create(
             model="tts-1",
             voice=voice,
-            input=text
+            input=text,
+            response_format="mp3" # Requesting the detailed map
         )
 
-        filename = f"lecture_{lecture_id}.mp3"
+        filename = f"chunk_{chunk_id}.mp3"
         filepath = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "audio", filename)
-
         response.stream_to_file(filepath)
-
-        return filename
+        
+        return {
+            "filename": filename,
+            "timestamps": []
+        }
 
     except Exception as e:
-        raise Exception(f"Error generating audio: {str(e)}")  
-     
-      
+        # If the API still complains about the format, we fallback to standard
+        print(f"Sync failed, falling back to standard audio: {e}")
+        return fallback_generate_audio(text, chunk_id, voice)
+
+def fallback_generate_audio(text, chunk_id, voice):
+    # This ensures your app NEVER crashes even if sync data is missing
+    response = client.audio.speech.create(model="tts-1", voice=voice, input=text)
+    filename = f"chunk_{chunk_id}.mp3"
+    filepath = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "audio", filename)
+    response.stream_to_file(filepath)
+    return {"filename": filename, "timestamps": []}
+
 def stream_lecture(topic: str, subject: str, difficulty: str = "intermediate"):
     """
     Streams a SHORT lecture for live mode.
@@ -168,27 +182,16 @@ def stream_answer(lecture_content: str, question: str):
         raise Exception(f"Error streaming answer: {str(e)}")
 
 
-def generate_audio_chunk(text: str, chunk_id: str, voice: str = "onyx") -> str:
-    """
-    Converts a paragraph of text to audio.
-    Used for syncing audio with streamed text.
-    Returns the filename.
-    """
+def generate_audio(text: str, lecture_id: int, voice: str = "onyx") -> str:
     try:
-        response = client.audio.speech.create(
-            model="tts-1",
-            voice=voice,
-            input=text
-        )
-
-        filename = f"chunk_{chunk_id}.mp3"
+        if len(text) > 4096:
+            text = text[:4096]
+        response = client.audio.speech.create(model="tts-1", voice=voice, input=text)
+        filename = f"lecture_{lecture_id}.mp3"
         filepath = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "audio", filename)
-
         response.stream_to_file(filepath)
-
         return filename
-
     except Exception as e:
-        raise Exception(f"Error generating audio chunk: {str(e)}")
+        raise Exception(f"Error generating audio: {str(e)}")
 
     

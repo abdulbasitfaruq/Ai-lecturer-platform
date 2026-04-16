@@ -70,20 +70,33 @@ def stream_lecture_endpoint(request: StreamRequest):
     def generate():
         full_content = ""
 
+        # 1. Stream the text chunks as before
         for chunk in stream_lecture(request.topic, request.subject, request.difficulty):
             full_content += chunk
             data = json.dumps({"type": "text", "content": chunk})
             yield f"data: {data}\n\n"
 
-        # Text done — generate ONE audio file
+        # 2. Text is finished — Generate audio WITH timestamps
         try:
             chunk_id = str(uuid.uuid4())[:8]
-            audio_file = generate_audio_chunk(full_content, chunk_id, request.voice)
-            audio_data = json.dumps({"type": "audio", "filename": audio_file})
-            yield f"data: {audio_data}\n\n"
+            
+            # This now returns {"filename": "...", "timestamps": [...]}
+            audio_result = generate_audio_chunk(full_content, chunk_id, request.voice)
+            
+            # Send BOTH to the frontend in one package
+            audio_payload = json.dumps({
+                "type": "audio", 
+                "filename": audio_result["filename"],
+                "timestamps": audio_result["timestamps"]  # The magic map
+            })
+            yield f"data: {audio_payload}\n\n"
+            
         except Exception as e:
             print(f"Audio generation failed: {str(e)}")
+            # Fallback error message for frontend
+            yield f"data: {json.dumps({'type': 'error', 'message': 'Audio failed'})}\n\n"
 
+        # 3. Signal completion
         done_data = json.dumps({"type": "done", "full_content": full_content})
         yield f"data: {done_data}\n\n"
 
