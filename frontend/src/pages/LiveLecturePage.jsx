@@ -135,7 +135,7 @@ function LiveLecturePage() {
         audio.onplay = () => setIsPlaying(true);
         audio.onpause = () => setIsPlaying(false);
         audio.onended = () => {
-            setIsPlaying(true);
+            setIsPlaying(false);
             setCurrentWordIndex(-1);
         };
         audio.play().catch(console.error);
