@@ -33,3 +33,5 @@ build/
 dist/
 *.egg-info/   
 backend/venv/
+backend/audio/*.mp3
+*.zip
