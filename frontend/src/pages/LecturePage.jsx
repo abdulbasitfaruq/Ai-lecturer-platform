@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { getUserLectures, askQuestion, getLectureQuestion } from '../services/api'
+import LecturerAvatar from '../components/LecturerAvatar'
+import { getLecturer } from '../Data/lecturers'
 
 function LecturePage() {
     const { id } = useParams()
@@ -72,6 +74,8 @@ if (typeof detail === 'string') {
         )
     }
 
+    const lecturer = getLecturer(lecture.subject)
+
     return (
         <div className="bg-gray-50 min-h-screen">
             <div className="max-w-3xl mx-auto py-8 px-4">
@@ -111,6 +115,10 @@ if (typeof detail === 'string') {
                             <p className="text-sm text-emerald-700">{lecture.summary}</p>
                         </div>
                     )}
+                </div>
+
+                <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-4">
+                    <LecturerAvatar lecturer={lecturer} isSpeaking={false} large={true} />
                 </div>
 
                 <div className="bg-white rounded-2xl border border-gray-200 p-6">

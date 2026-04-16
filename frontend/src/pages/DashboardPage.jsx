@@ -93,24 +93,30 @@ function DashboardPage() {
                     </div>
                 ) : (
                     <div className="grid grid-cols-3 gap-4">
-                        {lectures.map((lecture) => (
-                            <Link
-                                key={lecture.id}
-                                to={`/lecture/${lecture.id}`}
-                                className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md"
-                            >
-                                <div className="h-12 bg-gradient-to-r from-emerald-900 to-emerald-600"></div>
-                                <div className="p-4">
-                                    <h3 className="font-semibold text-gray-900 text-sm">{lecture.topic}</h3>
-                                    <p className="text-xs text-gray-500 mt-1">{lecture.subject}</p>
-                                    <div className="flex justify-between items-center mt-3">
-                                        <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
-                                            {lecture.difficulty}
-                                        </span>
+                        {lectures.map((lecture) => {
+                            const lecturer = getLecturer(lecture.subject)
+                            return (
+                                <Link
+                                    key={lecture.id}
+                                    to={`/lecture/${lecture.id}`}
+                                    className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md"
+                                >
+                                    <div className="h-12 bg-gradient-to-r from-emerald-900 to-emerald-600 flex items-center gap-3 px-4">
+                                        <img src={lecturer.image} alt={lecturer.name} className="w-8 h-8 rounded-full border border-white/50" />
+                                        <span className="text-white text-xs font-medium">{lecturer.name}</span>
                                     </div>
-                                </div>
-                            </Link>
-                        ))}
+                                    <div className="p-4">
+                                        <h3 className="font-semibold text-gray-900 text-sm">{lecture.topic}</h3>
+                                        <p className="text-xs text-gray-500 mt-1">{lecture.subject}</p>
+                                        <div className="flex justify-between items-center mt-3">
+                                          <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
+                                             {lecture.difficulty}
+                                          </span>
+                                       </div>
+                                    </div>
+                               </Link>
+                            )
+                        })}
                     </div>
                 )}
             </div>

@@ -103,25 +103,19 @@ def stream_lecture(topic: str, subject: str, difficulty: str = "intermediate"):
     """
     prompt = f"""
     You are an expert university lecturer in {subject}. 
-    Deliver a SHORT, focused lecture (about 300-400 words only).
+    Deliver a SHORT lecture of about 150-200 words only.
     
     Topic: {topic}
     Subject: {subject}
     Difficulty Level: {difficulty}
     
-    Structure:
-    1. Brief introduction (2-3 sentences)
-    2. Key concepts explained simply (main body)
-    3. One clear example
-    4. Brief conclusion (1-2 sentences)
-    
     IMPORTANT RULES:
-    - Keep it SHORT. Maximum 400 words.
-    - Do NOT include section numbers or headers like "1. Introduction"
-    - Write in a natural speaking style, like you're talking to students
-    - Do NOT include a title
-    - Just start talking naturally
-    - Make sure it's specifically about {topic} in the context of {subject}
+    - Maximum 200 words
+    - No section headers or numbers
+    - Write naturally like you're talking to students
+    - No title
+    - Keep it focused and concise
+    - Specifically about {topic} in {subject}
     """
     
     try:
