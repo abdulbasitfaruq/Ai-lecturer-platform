@@ -265,20 +265,20 @@ function LiveLecturePage() {
                 </div>
 
                 {/* Split Layout: Text + Visuals */}
-                <div className="flex gap-4 mb-4">
+                <div className="flex flex-col md:flex-row gap-4 mb-4">
                     {/* Left: Text (60-70%) */}
-                    <div className={`bg-white rounded-2xl border border-gray-200 p-6 min-h-[250px] max-h-[400px] overflow-y-auto ${visualFile ? 'w-2/3' : 'w-full'}`} ref={textContainerRef}>
+                    <div className={`bg-white rounded-2xl border border-gray-200 p-6 min-h-[250px] max-h-[400px] overflow-y-auto ${visualFile ? 'w-full md:w-2/3' : 'w-full'}`} ref={textContainerRef}>
                         {!lectureText && isStreaming ? <p className="text-gray-400">{lecturer.name} is starting the lecture...</p> : null}
                         {currentWordIndex >= 0 ? renderWords(lectureText, currentWordIndex) : <p className="text-gray-700 whitespace-pre-line">{lectureText}</p>}
                     </div>
 
                     {/* Right: Visual Panel (30-40%) */}
                     {visualFile ? (
-                        <div className="w-1/3 bg-white rounded-2xl border border-gray-200 p-3 flex items-center justify-center">
+                        <div className="w-full md:w-1/3 bg-white rounded-2xl border border-gray-200 p-3 flex items-center justify-center">
                             <img src={getAudioUrl(visualFile)} alt="Lecture visual" className="w-full rounded-lg" />
                         </div>
                     ) : (isStreaming || generatingAudio) ? (
-                        <div className="w-1/3 bg-gray-900 rounded-2xl p-4 flex items-center justify-center min-h-[250px]">
+                        <div className="w-full md:w-1/3 bg-gray-900 rounded-2xl p-4 flex items-center justify-center min-h-[250px]">
                             <div className="text-center">
                                 <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
                                 <p className="text-emerald-400 text-xs">Generating visual...</p>

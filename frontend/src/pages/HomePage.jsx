@@ -82,7 +82,7 @@ function HomePage() {
                             View all →
                         </Link>
                     </div>
-                    <div className="grid grid-cols-3 gap-5">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                         {lectures.slice(0, 3).map((lecture) => {
                             const lecturer = getLecturer(lecture.subject)
                             return (
@@ -125,7 +125,7 @@ function HomePage() {
                 <div className="max-w-6xl mx-auto">
                     <h2 className="text-2xl font-bold text-gray-900 mb-3 text-center">Meet your AI lecturers</h2>
                     <p className="text-gray-500 text-center mb-10">Expert lecturers powered by AI, each specializing in their field</p>
-                    <div className="grid grid-cols-3 gap-5">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                         {[
                             { subject: "Computer Science", desc: "Algorithms, data structures, AI" },
                             { subject: "Physics", desc: "Mechanics, quantum, thermodynamics" },
@@ -154,7 +154,7 @@ function HomePage() {
                 <div className="max-w-6xl mx-auto">
                     <h2 className="text-2xl font-bold text-gray-900 mb-3 text-center">What makes us different</h2>
                     <p className="text-gray-500 text-center mb-10">Built for students who want to learn smarter, not harder</p>
-                    <div className="grid grid-cols-4 gap-5">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
                         <div className="bg-white border border-gray-200 rounded-2xl p-6 text-center hover:shadow-md transition-all">
                             <div className="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center text-xl mx-auto mb-4">
                                 ⚡
@@ -191,7 +191,7 @@ function HomePage() {
             <div className="py-16 px-7 bg-gray-50">
                 <div className="max-w-6xl mx-auto">
                     <h2 className="text-2xl font-bold text-gray-900 mb-10 text-center">How it works</h2>
-                    <div className="grid grid-cols-3 gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                         <div className="text-center">
                             <div className="w-14 h-14 bg-emerald-700 text-white rounded-2xl flex items-center justify-center font-bold text-xl mx-auto mb-4 shadow-lg shadow-emerald-200">
                                 1

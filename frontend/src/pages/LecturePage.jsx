@@ -132,11 +132,10 @@ function LecturePage() {
                         </button>
                     )}
                 </div>
-
                 {/* Split Layout: Text + Visual */}
-                <div className="flex gap-4 mb-4">
+                <div className="flex flex-col md:flex-row gap-4 mb-4">
                     {/* Left: Text */}
-                    <div className={`bg-white rounded-2xl border border-gray-200 p-8 ${lecture.visual_url ? 'w-2/3' : 'w-full'}`}>
+                    <div className={`bg-white rounded-2xl border border-gray-200 p-8 ${lecture.visual_url ? 'w-full md:w-2/3' : 'w-full'}`}>
                         <div className="flex justify-between items-start mb-6">
                             <div>
                                 <h1 className="text-2xl font-bold text-gray-900">{lecture.topic}</h1>
@@ -161,7 +160,7 @@ function LecturePage() {
 
                     {/* Right: Visual */}
                     {lecture.visual_url && (
-                        <div className="w-1/3 bg-white rounded-2xl border border-gray-200 p-3 flex items-center justify-center">
+                        <div className="w-full md:w-1/3 bg-white rounded-2xl border border-gray-200 p-3 flex items-center justify-center">
                             <img src={getAudioUrl(lecture.visual_url)} alt="Lecture visual" className="w-full rounded-lg" />
                         </div>
                     )}

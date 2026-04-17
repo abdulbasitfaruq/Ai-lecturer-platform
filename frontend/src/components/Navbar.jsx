@@ -64,17 +64,17 @@ function Navbar() {
                     <span className="text-gray-900"> Lecturer</span>
                 </Link>
 
-                <div className="flex items-center gap-5">
+                <div className="flex items-center gap-3 md:gap-5">
                     <Link to="/" className="text-sm text-gray-500 hover:text-gray-900">
                         Home
                     </Link>
 
                     {user ? (
                         <>
-                            <Link to="/dashboard" className="text-sm text-gray-500 hover:text-gray-900">
+                            <Link to="/dashboard" className="text-sm text-gray-500 hover:text-gray-900 hidden md:block">
                                 Dashboard
                             </Link>
-                            <Link to="/generate" className="text-sm text-gray-500 hover:text-gray-900">
+                            <Link to="/generate" className="text-sm text-gray-500 hover:text-gray-900 hidden md:block">
                                 Generate
                             </Link>
                             <button

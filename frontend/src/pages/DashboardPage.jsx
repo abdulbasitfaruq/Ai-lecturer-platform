@@ -75,7 +75,7 @@ function DashboardPage() {
                             </p>
                         </div>
                     </div>
-                    <div className="grid grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="bg-white/10 backdrop-blur rounded-2xl p-5 text-center hover:bg-white/20 transition-all">
                             <p className="text-3xl font-bold text-white">{lectures.length}</p>
                             <p className="text-xs text-white/70 mt-1">Lectures</p>
@@ -122,7 +122,7 @@ function DashboardPage() {
                         </Link>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-3 gap-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                         {lectures.map((lecture) => {
                             const lecturer = getLecturer(lecture.subject)
                             return (
