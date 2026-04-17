@@ -63,7 +63,12 @@ const lecturers = {
 }
 
 export const getLecturer = (subject) => {
-    return lecturers[subject] || lecturers["default"]
+    if (!subject) return lecturers["default"]
+    
+    const match = Object.keys(lecturers).find(
+        key => key.toLowerCase() === subject.toLowerCase()
+    )
+    return match ? lecturers[match] : lecturers["default"]
 }
 
 export default lecturers
