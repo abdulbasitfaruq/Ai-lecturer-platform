@@ -9,19 +9,20 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def generate_lecture(topic: str, subject: str, difficulty: str = "intermediate") -> dict:
     prompt = f"""
-    You are expert university lecturer in {subject}.Generate a detailed educational lecture.
+    You are an expert university lecturer in {subject}. 
+    Deliver a SHORT lecture of about 150-200 words only.
+    
     Topic: {topic}
     Subject: {subject}
     Difficulty Level: {difficulty}
     
-    Structure of the lecture as follows:
-    1. Introduction: Briefly introduce the topic and its importance.
-    2. Main Content: Provide a comprehensive explanation of the topic, including key concepts.
-    3. Examples: Include relevant examples to illustrate the concepts.
-    4. Conclusion: Summarize the main points and provide any final thoughts.
-    
-    Make it engaging and informative, suitable for students at the {difficulty} level. Use clear language and avoid jargon. Include any relevant historical context, applications, or future implications of the topic.
-    Make sure the lecture is specifically about {topic} in the context of {subject}
+    IMPORTANT RULES:
+    - Maximum 200 words
+    - No section headers or numbers
+    - Write naturally like you're talking to students
+    - No title
+    - Keep it focused and concise
+    - Specifically about {topic} in {subject}
     """
     
     try:

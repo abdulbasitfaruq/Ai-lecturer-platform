@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from src.config.database import get_db
@@ -55,12 +55,44 @@ def generate_user_lecture(lecture: UserLectureRequest, db: Session = Depends(get
 
 @router.post("/guest/generate")
 def generate_guest_lecture(lecture: LectureRequest, db: Session = Depends(get_db)):
-    return create_guest_lecture(
-        topic=lecture.topic,
-        subject=lecture.subject,
-        difficulty=lecture.difficulty,
-        db=db
-    )
+    from src.services.ai_service import generate_lecture, generate_visual, generate_audio_chunk
+    from fastapi import HTTPException
+    import uuid
+
+    try:
+        result = generate_lecture(
+            topic=lecture.topic,
+            subject=lecture.subject,
+            difficulty=lecture.difficulty
+        )
+
+        voice_map = {
+            "computer science": "nova",
+            "physics": "onyx",
+            "mathematics": "shimmer",
+            "biology": "nova",
+            "chemistry": "echo",
+        }
+        voice = voice_map.get(lecture.subject.lower(), "onyx")
+
+        chunk_id = str(uuid.uuid4())[:8]
+        audio_result = generate_audio_chunk(result["content"], chunk_id, voice)
+
+        visual_file = generate_visual(lecture.topic, lecture.subject, result["content"])
+
+        return {
+            "lecture": {
+                "topic": result["topic"],
+                "subject": result["subject"],
+                "difficulty": result["difficulty"],
+                "content": result["content"],
+                "summary": result["summary"],
+                "visual_url": visual_file,
+                "audio_file": audio_result["filename"] if audio_result else None
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/user/{user_id}")
 def lecture_history(user_id: int, db: Session = Depends(get_db)):
