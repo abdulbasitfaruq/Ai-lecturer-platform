@@ -7,6 +7,7 @@ from src.controller.lecture_controller import create_lecture, create_guest_lectu
 from src.services.ai_service import stream_lecture, stream_answer, generate_audio_chunk, generate_visual
 import json
 import uuid
+from typing import Optional
 
 router = APIRouter(prefix="/lectures", tags=["lectures"])
 
@@ -39,8 +40,8 @@ class SaveLectureRequest(BaseModel):
     difficulty: str
     content: str
     user_id: int
-    audio_file: str = None
-    visual_url: str = None
+    audio_file: Optional[str] = None
+    visual_url: Optional[str] = None
 
 @router.post("/generate")
 def generate_user_lecture(lecture: UserLectureRequest, db: Session = Depends(get_db)):
