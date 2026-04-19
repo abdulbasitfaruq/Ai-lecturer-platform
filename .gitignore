@@ -1,37 +1,17 @@
-# Created by venv; see https://docs.python.org/3/library/venv.html
-#Python bytecode version 3.11.0
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.python
-venv/
-ENV/
-env/
-
-# database
-*.db
-*.sqlite3
-*.sqlite
-pohana.db
-# virtual environment
-.env
-*.env
-
-# IDEs and editors
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-# node modules
-node_modules/
-npm-debug.log
-
-# build files§
-build/
-dist/
-*.egg-info/   
+# Python
 backend/venv/
+backend/__pycache__/
+backend/src/__pycache__/
+backend/**/__pycache__/
+backend/.env
+backend/pohana.db
 backend/audio/*.mp3
+backend/audio/*.png
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# Misc
 *.zip
+.DS_Store
