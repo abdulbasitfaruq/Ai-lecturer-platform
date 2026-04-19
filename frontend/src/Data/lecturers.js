@@ -1,4 +1,4 @@
-import sarahChen from '../assets/lecturers/sarah_chen.png'
+import sarahChen from '../assets/lecturers/Sarah_chen.png'
 import jamesObi from '../assets/lecturers/james_obi.jpeg'
 import mariaSantos from '../assets/lecturers/maria_santos.jpeg'
 import aishaPatel from '../assets/lecturers/aisha_patel.jpeg'
