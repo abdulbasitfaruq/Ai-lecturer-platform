@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-    baseURL: 'http://localhost:8000'
+    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000'
 })
 
 export const registerUser = (username, email, password) => {
@@ -55,11 +55,13 @@ export const getLectureQuestion = (lectureId) => {
 }
 
 export const getAudioUrl = (filename) => {
-    return `http://localhost:8000/audio/${filename}`
+    const base = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+    return `${base}/audio/${filename}`
 }
 
 export const streamLecture = (topic, subject, difficulty, voice = 'onyx') => {
-    return fetch('http://localhost:8000/lectures/stream', {
+    const base = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+    return fetch(`${base}/lectures/stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ topic, subject, difficulty, voice })
@@ -67,7 +69,8 @@ export const streamLecture = (topic, subject, difficulty, voice = 'onyx') => {
 }
 
 export const streamQuestion = (lectureContent, question, voice = 'onyx') => {
-    return fetch('http://localhost:8000/lectures/stream/question', {
+    const base = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+    return fetch(`${base}/lectures/stream/question`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ lecture_content: lectureContent, question, voice })
