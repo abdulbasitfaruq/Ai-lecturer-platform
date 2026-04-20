@@ -5,10 +5,10 @@ function Footer() {
                 <div className="flex justify-between items-start mb-6">
                     <div>
                         <h3 className="text-lg font-semibold text-white mb-1">
-                            <span className="text-emerald-400">AI</span> Lecturer
+                            <span className="text-emerald-400">Pohana</span> AI
                         </h3>
                         <p className="text-xs text-emerald-400 max-w-xs leading-relaxed">
-                            An AI-powered lecture platform that delivers live, interactive university lectures with voice, visuals, and real-time Q&A.
+                            An AI-powered lecture platform that delivers live, interactive lectures with voice, visuals, and real-time Q&A.
                         </p>
                     </div>
                     <div className="flex gap-8">
@@ -26,7 +26,7 @@ function Footer() {
                 </div>
                 <div className="border-t border-emerald-800 pt-4 flex justify-between items-center">
                     <p className="text-xs text-emerald-500">
-                        AI Lecturer Platform &copy; 2026 — Built by AbdulBasit Farooq
+                        PohanaAI &copy; 2026 — Built by AbdulBasit Farooq
                     </p>
                     <p className="text-xs text-emerald-600">
                         Final Year Project — Computer Science

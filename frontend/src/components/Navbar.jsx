@@ -60,8 +60,8 @@ function Navbar() {
         <>
             <nav className="bg-white border-b border-gray-200 px-7 py-3.5 flex justify-between items-center relative z-50">
                 <Link to="/" className="text-lg font-semibold">
-                    <span className="text-emerald-700">AI</span>
-                    <span className="text-gray-900"> Lecturer</span>
+                    <span className="text-emerald-700">Pohana</span>
+                    <span className="text-gray-900"> AI</span>
                 </Link>
 
                 <div className="flex items-center gap-3 md:gap-5">
